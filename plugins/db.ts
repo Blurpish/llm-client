@@ -104,7 +104,7 @@ export default defineNuxtPlugin(async () => {
       collection: database.threads,
       topic: `eban-threads-pool-${(database as any).userId}`,
       connectionHandlerCreator: getConnectionHandlerSimplePeer({
-        signalingServerUrl: 'wss://signaling.rxdb.info/',
+        signalingServerUrl: 'wss://llm-client-signaling.eban.eu.org'
       }),
       pull: {},
       push: {}
