@@ -3,8 +3,12 @@ export default defineNuxtRouteMiddleware(async (to) => {
   if (apiKey.value) return
 
   const { code } = to.query
+  const callbackUrl = process.env.NODE_ENV === 'development' 
+    ? 'http://localhost:3000'
+    : 'https://llm-client-two.vercel.app'
+
   if (!code) {
-    navigateTo("https://openrouter.ai/auth?callback_url=https://llm-client-two.vercel.app", { external: true })
+    navigateTo(`https://openrouter.ai/auth?callback_url=${callbackUrl}`, { external: true })
   }
 
   const res = await fetch("https://openrouter.ai/api/v1/auth/keys", {
