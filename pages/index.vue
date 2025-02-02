@@ -19,7 +19,7 @@
             <img src="~/assets/icons/openrouter.ico" width="24" height="24" />
             <strong>OpenRouter</strong>
           </div>
-          <div v-html="DOMPurify.sanitize(marked.parse(content))"></div>
+          <div v-html="DOMPurify.sanitize(marked.parse(content) as string)"></div>
         </article>
       </div>
     </section>
@@ -39,11 +39,16 @@
   const query = ref("")
   const pending = ref(false)
 
-  const thread = ref([])
+  type Message = {
+    role: "system" | "user" | "assistant",
+    content: string,
+  }
+
+  const thread = ref<Message[]>([])
 
   const openai = new OpenAI({
     baseURL: "https://openrouter.ai/api/v1",
-    apiKey: useCookie("api-key").value,
+    apiKey: useCookie("api-key").value ?? undefined,
     dangerouslyAllowBrowser: true,
   })
 
@@ -67,7 +72,7 @@
 
     for await (const data of stream) {
       if (data.choices[0].finish_reason) break
-      thread.value[thread.value.length - 1] = { role: "assistant", content: thread.value.at(-1).content + data.choices[0].delta.content}
+      thread.value[thread.value.length - 1] = { role: "assistant", content: thread.value.at(-1)!.content + data.choices[0].delta.content}
     }
 
     pending.value = false
