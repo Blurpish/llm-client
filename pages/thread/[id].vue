@@ -1,6 +1,7 @@
 <template>
-  <div class="flex flex-col h-[95vh]">
-    <div class="flex-grow overflow-y-auto p-4 space-y-4">
+  <ThreadHeader />
+  <div class="flex flex-col mx-auto max-w-[1000px] h-[92.5vh] px-4">
+    <div class="flex-grow overflow-y-auto space-y-4">
       <Card v-for="(msg, index) in messages" :key="index" :class="msg.role === 'assistant' ? 'bg-gray-100' : 'bg-gray-50'">
         <CardContent class="p-2">
           <div class="flex items-center space-x-2 mb-1">
@@ -11,18 +12,17 @@
         </CardContent>
       </Card>
     </div>
-  </div>
-  
-  <!-- Floating rounded input card -->
-  <Card class="fixed bottom-4 left-1/2 transform -translate-x-1/2 w-[90%] max-w-md rounded-full shadow-lg z-50">
-    <div class="flex items-center space-x-2 p-4">
-      <Icon name="lucide:plus" />
-      <Input id="query-input" type="text" placeholder="Ask me anything" v-model="query" :disabled="pending" class="flex-grow border-none focus:ring-0" />
-      <Button @click="send" class="rounded-full">
-        <Icon name="lucide:send" />
-      </Button>
+    <div class="flex justify-center w-full">
+      <Card class="w-full max-w-md rounded-full shadow-lg">
+        <div class="flex items-center p-2">
+          <Input id="query-input" type="text" placeholder="Ask me anything" v-model="query" :disabled="pending" class="w-full !border-none !focus:ring-0 !outline-hidden" />
+          <Button @click="send" class="rounded-full p-0 !w-10 h-8 flex items-center justify-center" :disabled="query == ''">
+            <Icon name="lucide:send" class="w-4 h-4" />
+          </Button>
+        </div>
+      </Card>
     </div>
-  </Card>
+  </div>
 </template>
 
 <script lang="ts" setup>
@@ -204,34 +204,3 @@ async function newThread() {
   router.push(`/thread/${id}`)
 }
 </script>
-
-<style scoped>
-#thread-container {
-  display: flex;
-  flex-direction: column;
-  height: 95vh;
-}
-#chat-container {
-  flex-grow: 1;
-  overflow-y: auto;
-  padding: 16px;
-}
-article {
-  margin-bottom: 16px;
-  padding: 8px;
-  border-bottom: 1px solid #eee;
-}
-#input {
-  display: flex;
-  padding: 16px;
-  align-items: center;
-  border-top: 1px solid #ddd;
-}
-#query-input {
-  flex-grow: 1;
-  margin-left: 12px;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-}
-</style>
