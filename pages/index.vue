@@ -5,18 +5,18 @@
         GPT-3.5-Turbo
       </div>
       <div>
-        <img src="~/assets/icons/edit.svg" @click="clear" />
+        <Icon name="lucide:pen-line" @click="clear" />
       </div>
     </section>
     <section id="chat-container">
       <div id="chat">
         <article v-for="{ role, content } in thread">
           <div v-if="role === 'user'">
-            <img src="~/assets/icons/user.svg" />
+            <Icon name="lucide:user" />
             <strong>You</strong>
           </div>
           <div v-if="role === 'assistant'">
-            <img src="~/assets/icons/openrouter.ico" width="24" height="24" />
+            <Icon name="lucide:bot" />
             <strong>OpenRouter</strong>
           </div>
           <div v-html="DOMPurify.sanitize(marked.parse(content) as string)"></div>
@@ -24,9 +24,9 @@
       </div>
     </section>
     <section id="input">
-      <img src="~/assets/icons/plus.svg" />
+      <Icon name="lucide:plus" />
       <input id="query-input" type="text" placeholder="Ask me anything" enterkeyhint="enter" v-model="query" :disabled="pending">
-      <img id="send-icon" src="~/assets/icons/arrow-up.svg" @click="send" />
+      <Icon name="lucide:send" @click="send" />
     </section>
   </div>
 </template>
