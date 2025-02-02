@@ -1,38 +1,40 @@
 <template>
-  <div>
-    <Header @toggle-history="toggleHistory" @new-thread="newThread" />
-    <History v-if="showHistory" />
-    <div id="thread-container">
-      <section id="chat-container">
-        <article v-for="(msg, index) in messages" :key="index">
-          <div v-if="msg.role === 'user'">
-            <Icon name="lucide:user" />
-            <strong>You</strong>
-          </div>
-          <div v-if="msg.role === 'assistant'">
-            <Icon name="lucide:bot" />
-            <strong>OpenRouter</strong>
+  <div class="flex flex-col h-[95vh]">
+    <div class="flex-grow overflow-y-auto p-4 space-y-4">
+      <Card v-for="(msg, index) in messages" :key="index" :class="msg.role === 'assistant' ? 'bg-gray-100' : 'bg-gray-50'">
+        <CardContent class="p-2">
+          <div class="flex items-center space-x-2 mb-1">
+            <Icon :name="msg.role === 'assistant' ? 'lucide:bot' : 'lucide:user'" />
+            {{ msg.role === 'assistant' ? 'Assistant' : 'You' }}
           </div>
           <div v-html="msg.content"></div>
-        </article>
-      </section>
-      <section id="input">
-        <Icon name="lucide:plus" />
-        <input id="query-input" type="text" placeholder="Ask me anything" v-model="query" :disabled="pending">
-        <Icon name="lucide:send" @click="send" />
-      </section>
+        </CardContent>
+      </Card>
     </div>
   </div>
+  
+  <!-- Floating rounded input card -->
+  <Card class="fixed bottom-4 left-1/2 transform -translate-x-1/2 w-[90%] max-w-md rounded-full shadow-lg z-50">
+    <div class="flex items-center space-x-2 p-4">
+      <Icon name="lucide:plus" />
+      <Input id="query-input" type="text" placeholder="Ask me anything" v-model="query" :disabled="pending" class="flex-grow border-none focus:ring-0" />
+      <Button @click="send" class="rounded-full">
+        <Icon name="lucide:send" />
+      </Button>
+    </div>
+  </Card>
 </template>
 
 <script lang="ts" setup>
 import Header from '~/components/thread/header.vue'
-import History from '~/components/history.vue'
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import OpenAI from "openai"
 import { marked } from "marked"
 import DOMPurify from "dompurify"
+import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 type Message = { role: "system" | "user" | "assistant", content: string }
 
