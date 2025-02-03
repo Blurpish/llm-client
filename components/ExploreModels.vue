@@ -1,81 +1,3 @@
-<script lang="ts" setup>
-import { ref, computed, onMounted, watch } from 'vue'
-import { useAI } from '@/composables/useAI'
-
-const props = defineProps<{ open: boolean }>()
-const emit = defineEmits<{
-  (e: 'update:open', value: boolean): void;
-  (e: 'select-model', model: any): void;
-}>()
-
-const open = computed({
-  get: () => props.open,
-  set: (val) => emit('update:open', val)
-})
-
-const { activeProvider, providers, setActiveProvider } = useAI()
-const searchTerm = ref('')
-const sortKey = ref('date')
-const otherModels = ref<any[]>([])
-
-const providersList = computed(() => Array.from(providers.values()))
-
-const sortedOtherModels = computed(() => {
-  let filtered = otherModels.value.filter(model =>
-    (model.name || "").toLowerCase().includes(searchTerm.value.toLowerCase())
-  )
-  if (sortKey.value === "pricing") {
-    filtered.sort((a, b) => {
-      const priceA = (a.pricing && a.pricing.prompt && a.pricing.completion)
-        ? Number(a.pricing.prompt) + Number(a.pricing.completion)
-        : Number.MAX_VALUE
-      const priceB = (b.pricing && b.pricing.prompt && b.pricing.completion)
-        ? Number(b.pricing.prompt) + Number(b.pricing.completion)
-        : Number.MAX_VALUE
-      return priceA - priceB
-    })
-  } else if (sortKey.value === "date") {
-    filtered.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-  } else {
-    filtered.sort((a, b) => (a.name || "").localeCompare(b.name || ""))
-  }
-  return filtered
-})
-
-function computePricing(pricing: { prompt: string, completion: string }): string {
-  if (!pricing || !pricing.prompt || !pricing.completion) return "N/A";
-  const price = (Number(pricing.prompt) + Number(pricing.completion)) * 1e6;
-  return price.toFixed(2);
-}
-
-async function fetchOtherModels() {
-  try {
-    if (!activeProvider.value) return
-    otherModels.value = await activeProvider.value.fetchModels()
-  } catch (err) {
-    console.error('Failed to fetch models:', err);
-  }
-}
-
-watch(() => props.open, (newVal) => {
-  if (newVal) fetchOtherModels();
-});
-
-function changeProvider(provider: any) {
-  setActiveProvider(provider.id)
-  fetchOtherModels()
-}
-
-function selectOtherModel(model: any) {
-  emit('select-model', model)
-  open.value = false
-}
-
-onMounted(() => {
-  if (open.value) fetchOtherModels();
-});
-</script>
-
 <template>
   <Dialog v-model:open="open">
     <DialogContent>
@@ -83,18 +5,20 @@ onMounted(() => {
         <!-- Provider chips -->
         <div class="flex gap-2 flex-wrap mb-4">
           <Button
-            v-for="provider in providersList"
+            v-for="provider in enabledProviders"
             :key="provider.id"
             variant="outline"
             size="sm"
             :class="activeProvider?.id === provider.id && 'bg-primary/10'"
-            @click="changeProvider(provider)"
+            @click="handleProviderClick(provider.id)"
           >
             <Icon name="lucide:server" class="w-4 h-4 mr-2" />
             {{ provider.name }}
           </Button>
         </div>
-        <DialogTitle>Models from {{ activeProvider?.name || 'Provider' }}</DialogTitle>
+        <DialogTitle>
+          {{ props.editingDefault ? "Select new default model" : "Models from " + (activeProvider?.name || 'Provider') }}
+        </DialogTitle>
         <DialogDescription>
           Select a model from the list below.
         </DialogDescription>
@@ -128,3 +52,95 @@ onMounted(() => {
     </DialogContent>
   </Dialog>
 </template>
+
+<script lang="ts" setup>
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { useAI } from '@/composables/useAI'
+import { useUserStore } from '@/stores/user'
+
+const props = defineProps<{ open: boolean; editingDefault?: boolean }>()
+const emit = defineEmits<{
+  (e: 'update:open', value: boolean): void;
+  (e: 'select-model', model: any): void;
+}>()
+
+const open = computed({
+  get: () => props.open,
+  set: (val) => emit('update:open', val)
+})
+
+const { activeProvider, providers, setActiveProvider } = useAI()
+const userStore = useUserStore()
+
+// Only include enabled providers
+const enabledProviders = computed(() => {
+  return Array.from(providers.values()).filter(provider => userStore.enabledProviders[provider.id])
+})
+
+const searchTerm = ref('')
+const sortKey = ref('date')
+const otherModels = ref<any[]>([])
+
+const sortedOtherModels = computed(() => {
+  let filtered = otherModels.value.filter(model =>
+    (model.name || "").toLowerCase().includes(searchTerm.value.toLowerCase())
+  )
+  if (sortKey.value === "pricing") {
+    filtered.sort((a, b) => {
+      const priceA = (a.pricing && a.pricing.prompt && a.pricing.completion)
+        ? Number(a.pricing.prompt) + Number(a.pricing.completion)
+        : Number.MAX_VALUE
+      const priceB = (b.pricing && b.pricing.prompt && b.pricing.completion)
+        ? Number(b.pricing.prompt) + Number(b.pricing.completion)
+        : Number.MAX_VALUE
+      return priceA - priceB
+    })
+  } else if (sortKey.value === "date") {
+    filtered.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+  } else {
+    filtered.sort((a, b) => (a.name || "").localeCompare(b.name || ""))
+  }
+  return filtered
+})
+
+function computePricing(pricing: { prompt: string, completion: string }): string {
+  if (!pricing || !pricing.prompt || !pricing.completion) return "N/A";
+  const price = (Number(pricing.prompt) + Number(pricing.completion)) * 1e6;
+  return price.toFixed(2);
+}
+
+async function fetchOtherModels() {
+  try {
+    if (!activeProvider.value) return
+    if (!userStore.enabledProviders[activeProvider.value.id]) {
+      const enabled = enabledProviders.value
+      if (enabled.length) {
+        setActiveProvider(enabled[0].id)
+        await nextTick()
+      }
+    }
+    otherModels.value = await activeProvider.value.fetchModels()
+  } catch (err) {
+    console.error('Failed to fetch models:', err);
+  }
+}
+
+async function handleProviderClick(providerId: string) {
+  setActiveProvider(providerId)
+  await nextTick()
+  fetchOtherModels()
+}
+
+watch(() => props.open, (newVal) => {
+  if (newVal) fetchOtherModels();
+})
+
+function selectOtherModel(model: any) {
+  emit('select-model', model)
+  open.value = false
+}
+
+onMounted(() => {
+  if (open.value) fetchOtherModels();
+});
+</script>

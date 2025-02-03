@@ -51,12 +51,29 @@
         </div>
       </CardContent>
     </Card>
+
+    <Card>
+      <CardHeader>
+        <CardTitle>AI Providers</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div class="space-y-2">
+          <!-- Loop through available providers using Switch -->
+          <div v-for="(value, key) in userStore.enabledProviders" :key="key" class="flex items-center space-x-2">
+            <Switch v-model:checked="userStore.enabledProviders[key]" :id="key" />
+            <Label :for="key">{{ key }}</Label>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import jsQR from 'jsqr';
+import { useUserStore } from '@/stores/user';
+import { Switch } from '@/components/ui/switch'; // NEW: Import the Switch component
 
 const userStore = useUserStore();
 
@@ -154,5 +171,10 @@ async function updateProfile() {
     };
     await doc.patch({ customInstructions: plainInstructions });
   }
+}
+
+function toggleProvider(provider: string, event: Event) {
+  const target = event.target as HTMLInputElement;
+  userStore.enabledProviders[provider] = target.checked;
 }
 </script>

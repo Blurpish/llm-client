@@ -10,7 +10,8 @@
       <PopoverContent class="w-56 p-0">
         <div class="space-y-2">
           <div class="p-2 border-b">
-            <div class="flex items-center p-1 hover:bg-gray-100 cursor-pointer"
+            <!-- Auto selection -->
+            <div class="flex items-center group p-1 hover:bg-gray-100 cursor-pointer"
                 :class="{'bg-gray-100': userStore.autoModelSelect}"
                 @click="selectAuto()">
               <div class="flex items-center gap-1">
@@ -18,9 +19,9 @@
                 Auto
               </div>
             </div>
-            
+            <!-- Predefined models -->
             <div v-for="(model, key) in userStore.predefinedModels" :key="key"
-                class="flex items-center justify-between hover:bg-gray-100 cursor-pointer p-1"
+                class="flex items-center group hover:bg-gray-100 cursor-pointer p-1"
                 :class="{'bg-gray-100': !userStore.autoModelSelect && userStore.selectedModel.id === model.id}">
               <div class="flex items-center gap-1 flex-grow"
                   @click="selectPredefinedModel(model)">
@@ -30,6 +31,10 @@
                   <span class="text-xs text-gray-500 truncate max-w-[120px]">{{ model.name }}</span>
                 </div>
               </div>
+              <!-- Edit button on right; visible on hover -->
+              <Button @click.stop="editDefault(key, model)" size="icon" variant="ghost" class="invisible group-hover:visible">
+                <Icon name="lucide:edit" class="w-4 h-4" />
+              </Button>
             </div>
           </div>
           <!-- Custom saved models -->
@@ -48,12 +53,13 @@
               Explore more models
             </button>
           </div>
+          <!-- Removed previous Edit Defaults button -->
         </div>
       </PopoverContent>
     </Popover>
 
-    <!-- Removed edit dialog; using ExploreModels for model selection -->
-    <ExploreModels :open="exploreModelsOpen" @update:open="exploreModelsOpen = $event" @select-model="selectOtherModel" />
+    <!-- Pass 'editingDefault' flag when editing a default -->
+    <ExploreModels :open="exploreModelsOpen" :editingDefault="!!editDefaultKey" @update:open="exploreModelsOpen = $event" @select-model="selectOtherModel" />
   </div>
 </template>
 
@@ -62,18 +68,28 @@ import { useUserStore } from '@/stores/user'
 
 const userStore = useUserStore()
 const exploreModelsOpen = ref(false)
+const editDefaultKey = ref<string | null>(null)
 
 // Select a model from ExploreModels
 function selectOtherModel(model: any) {
-  const exists = userStore.savedModels.find((m: any) => m.id === model.id)
-  if (!exists) {
-    userStore.savedModels.push({
-      id: model.id,
-      name: model.name,
-      description: model.description,
-      icon: model.icon || 'lucide:box',
-      provider: model.provider
-    })
+  console.log(model)
+  if (editDefaultKey.value) {
+    userStore.predefinedModels[editDefaultKey.value] = {
+      ...model,
+      provider: model.provider || 'openrouter'
+    }
+    editDefaultKey.value = null
+  } else {
+    const exists = userStore.savedModels.find((m: any) => m.id === model.id)
+    if (!exists) {
+      userStore.savedModels.push({
+        id: model.id,
+        name: model.name,
+        description: model.description,
+        icon: model.icon || 'lucide:box',
+        provider: model.provider
+      })
+    }
   }
   userStore.selectedModel = model;
 }
@@ -149,5 +165,10 @@ function getSelectedModelIcon(): string {
     }
   }
   return model.icon || 'lucide:box';
+}
+
+function editDefault(key: string, model: any) {
+  editDefaultKey.value = key
+  exploreModelsOpen.value = true
 }
 </script>

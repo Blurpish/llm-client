@@ -61,7 +61,7 @@
       <!-- Folders and Threads -->
       <SidebarGroup>
         <SidebarGroupLabel>Threads</SidebarGroupLabel>
-        <SidebarGroupAction class="flex gap-2 w-max h-min">
+        <SidebarGroupAction class="flex gap-2 w-max h-4">
             <Icon name="lucide:folder-plus" class="w-4 h-4" @click="addFolder" />
             <Icon name="lucide:plus" class="w-4 h-4" @click="addThread" />
         </SidebarGroupAction>

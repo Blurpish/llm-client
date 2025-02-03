@@ -1,19 +1,19 @@
 export const defaultModels = {
   mini: {
-    id: 'meta-llama/llama-3.2-3b-instruct',
-    name: 'Mini',
+    id: 'gpt-4o-mini',
+    name: "OpenAI: GPT-4o-mini",
     icon: 'lucide:zap',
     provider: 'openrouter'
   },
   base: {
-    id: 'meta-llama/llama-3.2-7b-instruct',
-    name: 'Base',
+    id: 'gpt-4o',
+    name: 'gpt-4o',
     icon: 'lucide:bot',
     provider: 'openrouter'
   },
   max: {
-    id: 'meta-llama/llama-3.2-70b-instruct',
-    name: 'Max',
+    id: 'deepseek-r1',
+    name: 'deepseek-r1',
     icon: 'lucide:brain',
     provider: 'openrouter'
   }

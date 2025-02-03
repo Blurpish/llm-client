@@ -20,7 +20,7 @@ export class OpenRouterProvider implements AIProvider {
     const res = await fetch('http://localhost:11434/api/tags')
     const json = await res.json()
     return json.models.map((model: any) => ({
-      id: model.digest,
+      id: model.name,
       name: model.name,
       description: '',
       icon: 'lucide:box',

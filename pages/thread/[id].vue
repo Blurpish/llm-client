@@ -52,7 +52,7 @@ const showHistory = ref(false)
 const masks = ref([])
 let threadDoc: any = null
 
-const { activeProvider } = useAI()
+const { activeProvider, providers } = useAI()
 
 const activeMask = ref<any>(null)
 
@@ -147,15 +147,19 @@ async function safePatch(patch: object): Promise<void> {
   }
 }
 
+// Update generateTitle() to select provider from user settings
 async function generateTitle(message: string): Promise<string> {
-  if (!activeProvider.value) return 'New Thread'
+  const titleProv = providers.get(userStore.titleProvider)
+  if (!titleProv) return 'New Thread'
   
   const prompt = `give a short title, TWO WORDS MAXIMUM to the conversation starting with the following message : ${message}. You must NOT UNDER ANY CIRCUMSTANCES exceed the two words maximum nor send ANYTHING ELSE the the TWO WORDS of the title.`
   
   let title = ''
-  const stream = await activeProvider.value.chat([
+  const stream = await titleProv.chat([
     { role: "user", content: prompt }
-  ], userStore.predefinedModels.base.id)
+  ], {
+    id: "meta-llama/llama-3.2-3b-instruct",
+  })
 
   for await (const chunk of stream) {
     if (chunk.choices[0].delta?.content) {
@@ -203,8 +207,9 @@ Message to analyze: ${message}`
   return userStore.predefinedModels[modelMap[choice] || "base"].id;
 }
 
+// Update send() to use completion provider based on user settings
 async function send(payload: { text: string }) {
-  if (!threadDoc || !activeProvider.value) return
+  if (!threadDoc) return
   pending.value = true
 
   // Add the user message to the thread
@@ -220,7 +225,6 @@ async function send(payload: { text: string }) {
   await safePatch({ messages: updatedMessages })
   messages.value = updatedMessages
 
-  // NEW: If it's the first message, generate and update the thread title
   if (freshDoc.get('title') === 'New Thread') {
     const title = await generateTitle(payload.text)
     await safePatch({ title })
@@ -242,21 +246,35 @@ async function send(payload: { text: string }) {
   const prePrompt = await getCustomPrompt()
   const apiMessages = prePrompt ? [{ role: "system", content: prePrompt }, ...messages.value] : messages.value
 
-  console.log(userStore.autoModelSelect)
   const modelToUse = userStore.autoModelSelect 
     ? await selectModelForMessage(payload.text)
     : userStore.selectedModel.id;
-
-  const stream = await activeProvider.value.chat(apiMessages, modelToUse)
+    
+  // Look up the model in predefinedModels (search in all values)
+  let chosenModel: any;
+  for (const key in userStore.predefinedModels) {
+    const m = userStore.predefinedModels[key];
+    if (m.id === modelToUse) {
+      chosenModel = m;
+      break;
+    }
+  }
+  // Pick the provider attached to the model; if disabled, fall back to activeProvider
+  let chosenProv = providers.get(chosenModel?.provider || '');
+  if (!chosenProv || !userStore.enabledProviders[chosenProv.id]) {
+    chosenProv = activeProvider.value;
+  }
+  
+  const stream = await chosenProv.chat(apiMessages, modelToUse)
 
   for await (const data of stream) {
     const delta = data.choices[0].delta
     if (delta && delta.content) {
       freshDoc = await (globalThis as any).database.threads.findOne({ selector: { id: threadId } }).exec()
-      currentMessages = freshDoc.get('messages') || []
+      let currentMessages = freshDoc.get('messages') || []
       const lastMsg = { ...currentMessages[currentMessages.length - 1] }
       lastMsg.content += delta.content
-      updatedMessages = [...currentMessages.slice(0, -1), lastMsg]
+      const updatedMessages = [...currentMessages.slice(0, -1), lastMsg]
       await safePatch({ messages: updatedMessages })
       messages.value = updatedMessages
     }
