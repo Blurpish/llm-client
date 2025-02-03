@@ -149,7 +149,10 @@ export default defineNuxtPlugin(async () => {
         collection: database[collectionKey],
         topic: `eban-${collectionKey}-pool-${(database as any).userId}`,
         connectionHandlerCreator: getConnectionHandlerSimplePeer({
-          signalingServerUrl: 'wss://llm-client-signaling.eban.eu.org'
+          signalingServerUrl: 'wss://llm-client-signaling.eban.eu.org',
+          config: {
+            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478?transport=udp' }]
+          }
         }),
         pull: {},
         push: {}
