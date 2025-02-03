@@ -13,6 +13,11 @@ import { replicateWebRTC, getConnectionHandlerSimplePeer } from 'rxdb/plugins/re
 import { RxDBMigrationSchemaPlugin } from 'rxdb/plugins/migration-schema';
 
 export default defineNuxtPlugin(async () => {
+  // Retrieve credentials from runtime config (make sure to define RTC_ICE_USERNAME & RTC_ICE_CREDENTIAL in your .env)
+  const config = useRuntimeConfig();
+  const ICE_USERNAME = config.public.RTC_ICE_USERNAME;
+  const ICE_CREDENTIAL = config.public.RTC_ICE_CREDENTIAL;
+
   addRxPlugin(RxDBDevModePlugin);
   addRxPlugin(RxDBMigrationSchemaPlugin);
 
@@ -121,7 +126,7 @@ export default defineNuxtPlugin(async () => {
     });
     (globalThis as any).database = database;
     await database.addCollections(collectionsConfig);
-    
+
     const profileDoc = await database.profile.findOne().exec();
     (database as any).userId = profileDoc ? profileDoc.id : null;
   } else {
@@ -140,7 +145,7 @@ export default defineNuxtPlugin(async () => {
       }
     }
   }
-  
+
   // Add replication for every collection.
   const database = (globalThis as any).database;
   (async () => {
@@ -153,24 +158,30 @@ export default defineNuxtPlugin(async () => {
           config: {
             iceServers: [
               {
-                urls: "stun:openrelay.metered.ca:80"
+                urls: "stun:stun.relay.metered.ca:80",
               },
               {
-                urls: "turn:openrelay.metered.ca:80",
-                username: "openrelayproject",
-                credential: "openrelayproject"
+                urls: "turn:global.relay.metered.ca:80",
+                username: ICE_USERNAME,
+                credential: ICE_CREDENTIAL,
               },
               {
-                urls: "turn:openrelay.metered.ca:443",
-                username: "openrelayproject",
-                credential: "openrelayproject"
+                urls: "turn:global.relay.metered.ca:80?transport=tcp",
+                username: ICE_USERNAME,
+                credential: ICE_CREDENTIAL,
               },
               {
-                urls: "turn:openrelay.metered.ca:443?transport=tcp",
-                username: "openrelayproject",
-                credential: "openrelayproject"
-              }
-            ]}
+                urls: "turn:global.relay.metered.ca:443",
+                username: ICE_USERNAME,
+                credential: ICE_CREDENTIAL,
+              },
+              {
+                urls: "turns:global.relay.metered.ca:443?transport=tcp",
+                username: ICE_USERNAME,
+                credential: ICE_CREDENTIAL,
+              },
+            ]
+          }
         }),
         pull: {},
         push: {}
