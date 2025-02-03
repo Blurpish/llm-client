@@ -15,6 +15,7 @@ export const useUserStore = defineStore('user', () => {
   
   const selectedModel = ref(predefinedModels.value.base);
   const autoModelSelect = ref(false);
+  const currentMask = ref<any>(null);
 
   function updatePredefinedModel(type: 'mini' | 'base' | 'max', model: any) {
     predefinedModels.value[type] = { ...model };
@@ -35,7 +36,8 @@ export const useUserStore = defineStore('user', () => {
     selectedModel,
     autoModelSelect,
     predefinedModels,
-    updatePredefinedModel
+    updatePredefinedModel,
+    currentMask
   }
 }, {
   persist: true,

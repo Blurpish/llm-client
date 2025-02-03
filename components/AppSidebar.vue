@@ -272,6 +272,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 const menuItems = [
   { title: "Home", url: "/", icon: "lucide:house" },
   { title: "Profile", url: "/profile", icon: "lucide:user" },
+  { title: "Masks", url: "/masks", icon: "lucide:venetian-mask" },
 ]
 
 const route = useRoute()

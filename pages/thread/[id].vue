@@ -12,7 +12,11 @@
       </Card>
     </div>
     <div class="flex justify-center w-full max-w-[1100px]">
-      <ChatInput :pending="pending" @send="send" />
+      <ChatInput 
+        :pending="pending" 
+        @send="send"
+        @maskChange="handleMaskChange" 
+      />
     </div>
   </div>
 </template>
@@ -38,6 +42,7 @@ const userStore = useUserStore()
 const messages = ref<Message[]>([])
 const pending = ref(false)
 const showHistory = ref(false)
+const masks = ref([])
 let threadDoc: any = null
 
 // Initialize OpenAI instance
@@ -47,18 +52,34 @@ const openai = new OpenAI({
   dangerouslyAllowBrowser: true,
 })
 
+// Update mask handling
+const activeMask = ref<any>(null)
+
+function handleMaskChange(mask: any) {
+  activeMask.value = mask
+}
+
 // NEW: Helper to build custom pre-prompt using custom instructions
 async function getCustomPrompt(): Promise<string> {
   const db = (globalThis as any).database;
   const profileDoc = await db.profile.findOne().exec();
-  if (!profileDoc) return '';
+  let prompt = '';
   
-  const { name, occupation, traits, other } = profileDoc.customInstructions;
-  let prompt = "Below are the custom instructions and infos provided by the user, you should strictly follow them:\n";
-  if (name) prompt += `Name: ${name.trim()}\n`;
-  if (occupation) prompt += `Occupation: ${occupation.trim()}\n`;
-  if (traits) prompt += `Traits: ${traits.trim()}\n`;
-  if (other) prompt += `Other instructions: ${other.trim()}\n`;
+  // Use mask from store
+  if (userStore.currentMask) {
+    prompt += userStore.currentMask.prompt + '\n\n';
+  }
+  
+  // Add custom instructions if they exist
+  if (profileDoc) {
+    const { name, occupation, traits, other } = profileDoc.customInstructions;
+    prompt += "Below are the custom instructions and infos provided by the user:\n";
+    if (name) prompt += `Name: ${name.trim()}\n`;
+    if (occupation) prompt += `Occupation: ${occupation.trim()}\n`;
+    if (traits) prompt += `Traits: ${traits.trim()}\n`;
+    if (other) prompt += `Other instructions: ${other.trim()}\n`;
+  }
+  
   return prompt.trim();
 }
 
@@ -92,6 +113,18 @@ onMounted(async () => {
     const initialMsg = decodeURIComponent(route.query.initialMessage as string)
     send({ text: initialMsg })
   }
+
+  // Load masks
+  const db = (globalThis as any).database
+  const allMasks = await db.masks.find().exec()
+  masks.value = allMasks.map(doc => doc.toJSON())
+
+  // Subscribe to mask changes
+  db.masks.$.subscribe(() => {
+    db.masks.find().exec().then((docs: any) => {
+      masks.value = docs.map((doc: any) => doc.toJSON())
+    })
+  })
 })
 
 async function safePatch(patch: object): Promise<void> {

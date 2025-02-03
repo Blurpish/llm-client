@@ -1,91 +1,117 @@
 <template>
-  <Card class="w-full shadow-lg bg-gray-100">
-    <div class="flex flex-col space-y-2 p-2">
-      <!-- Top row: Input only -->
-      <Input id="query-input" type="text" placeholder="Ask me anything" v-model="query" :disabled="pending"
-        @keyup.enter="handleSend"
-        class="w-full bg-transparent border-none p-1 ![--tw-ring-offset-shadow:0] ![--tw-ring-shadow:0] !shadow-none" />
+  <div class="flex flex-col gap-2 w-full">
+    <!-- Mask selector chips -->
+    <div class="flex gap-2 flex-wrap">
+      <Button 
+        variant="outline" 
+        size="sm"
+        :class="!userStore.currentMask && 'bg-primary/10'"
+        @click="selectMask(null)"
+      >
+        <Icon name="lucide:bot" class="w-4 h-4 mr-2" />
+        Default
+      </Button>
+      <Button
+        v-for="mask in masks"
+        :key="mask.id"
+        variant="outline"
+        size="sm"
+        :class="userStore.currentMask?.id === mask.id && 'bg-primary/10'"
+        @click="selectMask(mask)"
+      >
+        <Icon :name="'lucide:' + (mask.icon || 'user')" class="w-4 h-4 mr-2" />
+        {{ mask.name }}
+      </Button>
+    </div>
 
-      <div class="flex items-center justify-between space-x-2">
-        <div class="flex justify-between w-full">
-          <div class="flex space-x-2">
-            <Button @click="handleWebSearch" :disabled="pending" variant="outline" size="icon" class="bg-transparent">
-              <Icon name="lucide:globe" class="w-5 h-5" />
-            </Button>
-            <Button @click="handleFileAttach" :disabled="pending" variant="outline" size="icon" class="bg-transparent">
-              <Icon name="lucide:paperclip" class="w-5 h-5" />
-            </Button>
-            <Popover>
-              <PopoverTrigger>
-                <Button variant="outline">
-                  <Icon :name="userStore.autoModelSelect ? 'lucide:cpu' : getSelectedModelIcon()" class="w-4 h-4 mr-2" />
-                  {{ userStore.autoModelSelect ? 'Auto' : selectedModelDisplay }}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent class="w-56 p-0">
-                <div class="space-y-2">
-                  <!-- Predefined models section -->
-                  <div class="p-2 border-b">
-                    <!-- Auto model option -->
-                    <div class="flex items-center p-1 hover:bg-gray-100 cursor-pointer"
-                         :class="{'bg-gray-100': userStore.autoModelSelect}"
-                         @click="selectAuto()">
-                      <div class="flex items-center gap-1">
-                        <Icon name="lucide:cpu" class="w-4 h-4" />
-                        Auto
-                      </div>
-                    </div>
-                    
-                    <!-- Predefined models with edit buttons -->
-                    <div v-for="(model, key) in userStore.predefinedModels" :key="key"
-                         class="flex items-center justify-between hover:bg-gray-100 cursor-pointer p-1"
-                         :class="{'bg-gray-100': !userStore.autoModelSelect && userStore.selectedModel.id === model.id}">
-                      <div class="flex items-center gap-1 flex-grow"
-                           @click="selectPredefinedModel(model)">
-                        <Icon :name="getModelIcon(key)" class="w-4 h-4" />
-                        <div class="flex flex-col">
-                          <span class="font-medium">{{ key.charAt(0).toUpperCase() + key.slice(1) }}</span>
-                          <span class="text-xs text-gray-500 truncate max-w-[120px]">{{ model.name }}</span>
+    <Card class="w-full shadow-lg bg-gray-100">
+      <div class="flex flex-col space-y-2 p-2">
+        <!-- Top row: Input only -->
+        <Input id="query-input" type="text" placeholder="Ask me anything" v-model="query" :disabled="pending"
+          @keyup.enter="handleSend"
+          class="w-full bg-transparent border-none p-1 ![--tw-ring-offset-shadow:0] ![--tw-ring-shadow:0] !shadow-none" />
+
+        <div class="flex items-center justify-between space-x-2">
+          <div class="flex justify-between w-full">
+            <div class="flex space-x-2">
+              <Button @click="handleWebSearch" :disabled="pending" variant="outline" size="icon" class="bg-transparent">
+                <Icon name="lucide:globe" class="w-5 h-5" />
+              </Button>
+              <Button @click="handleFileAttach" :disabled="pending" variant="outline" size="icon" class="bg-transparent">
+                <Icon name="lucide:paperclip" class="w-5 h-5" />
+              </Button>
+              <Popover>
+                <PopoverTrigger>
+                  <Button variant="outline">
+                    <Icon :name="userStore.autoModelSelect ? 'lucide:cpu' : getSelectedModelIcon()" class="w-4 h-4 mr-2" />
+                    {{ userStore.autoModelSelect ? 'Auto' : selectedModelDisplay }}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent class="w-56 p-0">
+                  <div class="space-y-2">
+                    <!-- Predefined models section -->
+                    <div class="p-2 border-b">
+                      <!-- Auto model option -->
+                      <div class="flex items-center p-1 hover:bg-gray-100 cursor-pointer"
+                          :class="{'bg-gray-100': userStore.autoModelSelect}"
+                          @click="selectAuto()">
+                        <div class="flex items-center gap-1">
+                          <Icon name="lucide:cpu" class="w-4 h-4" />
+                          Auto
                         </div>
                       </div>
-                      <Button @click.stop="openEditDialog(key, model)" 
-                             size="icon" 
-                             variant="ghost" 
-                             class="bg-transparent">
-                        <Icon name="lucide:edit" class="w-3 h-3" />
+                      
+                      <!-- Predefined models with edit buttons -->
+                      <div v-for="(model, key) in userStore.predefinedModels" :key="key"
+                          class="flex items-center justify-between hover:bg-gray-100 cursor-pointer p-1"
+                          :class="{'bg-gray-100': !userStore.autoModelSelect && userStore.selectedModel.id === model.id}">
+                        <div class="flex items-center gap-1 flex-grow"
+                            @click="selectPredefinedModel(model)">
+                          <Icon :name="getModelIcon(key)" class="w-4 h-4" />
+                          <div class="flex flex-col">
+                            <span class="font-medium">{{ key.charAt(0).toUpperCase() + key.slice(1) }}</span>
+                            <span class="text-xs text-gray-500 truncate max-w-[120px]">{{ model.name }}</span>
+                          </div>
+                        </div>
+                        <Button @click.stop="openEditDialog(key, model)" 
+                              size="icon" 
+                              variant="ghost" 
+                              class="bg-transparent">
+                          <Icon name="lucide:edit" class="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    <!-- Custom saved models -->
+                    <div v-for="model in customSavedModels" :key="model.id" class="flex items-center justify-between">
+                      <div class="flex items-center gap-1 p-2 hover:bg-gray-100 cursor-pointer w-full"
+                        @click="userStore.selectedModel = model">
+                        <Icon :name="model.icon" class="w-4 h-4" />
+                        {{ model.name }}
+                      </div>
+                      <Button @click="removeSavedModel(model)" size="icon" variant="ghost" class="bg-transparent">
+                        <Icon name="lucide:x" class="w-4 h-4" />
                       </Button>
                     </div>
-                  </div>
-
-                  <!-- Custom saved models -->
-                  <div v-for="model in customSavedModels" :key="model.id" class="flex items-center justify-between">
-                    <div class="flex items-center gap-1 p-2 hover:bg-gray-100 cursor-pointer w-full"
-                      @click="userStore.selectedModel = model">
-                      <Icon :name="model.icon" class="w-4 h-4" />
-                      {{ model.name }}
+                    <!-- Explore more models button -->
+                    <div class="p-2 border-t">
+                      <button class="w-full text-sm text-center" type="button" @click="openRouterDialog = true">
+                        Explore more models
+                      </button>
                     </div>
-                    <Button @click="removeSavedModel(model)" size="icon" variant="ghost" class="bg-transparent">
-                      <Icon name="lucide:x" class="w-4 h-4" />
-                    </Button>
                   </div>
-                  <!-- Explore more models button -->
-                  <div class="p-2 border-t">
-                    <button class="w-full text-sm text-center" type="button" @click="openRouterDialog = true">
-                      Explore more models
-                    </button>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
+                </PopoverContent>
+              </Popover>
+            </div>
+            <Button @click="handleSend" size="icon"
+              :disabled="!query.trim() || pending">
+              <Icon name="lucide:send" class="w-4 h-4" />
+            </Button>
           </div>
-          <Button @click="handleSend" size="icon"
-            :disabled="!query.trim() || pending">
-            <Icon name="lucide:send" class="w-4 h-4" />
-          </Button>
         </div>
       </div>
-    </div>
-  </Card>
+    </Card>
+  </div>
   <Dialog v-model:open="openRouterDialog">
     <DialogContent>
       <DialogHeader>
@@ -385,6 +411,27 @@ function getSelectedModelIcon(): string {
   }
   // If not predefined, return model's icon or default
   return model.icon || 'lucide:box';
+}
+
+const masks = ref([])
+// Remove selectedMask ref since we're using store
+
+onMounted(async () => {
+  const db = (globalThis as any).database
+  const allMasks = await db.masks.find().exec()
+  masks.value = allMasks.map(doc => doc.toJSON())
+
+  // Subscribe to mask changes
+  db.masks.$.subscribe(() => {
+    db.masks.find().exec().then((docs: any) => {
+      masks.value = docs.map((doc: any) => doc.toJSON())
+    })
+  })
+})
+
+function selectMask(mask: any) {
+  console.log(mask)
+  userStore.currentMask = mask
 }
 
 </script>

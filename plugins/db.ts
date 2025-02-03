@@ -94,6 +94,21 @@ export default defineNuxtPlugin(async () => {
         },
         required: ['id', 'name', 'path', 'parentPath', 'created_at']
       }
+    },
+    masks: {
+      schema: {
+        version: 0,
+        primaryKey: 'id',
+        type: 'object',
+        properties: {
+          id: { type: 'string', maxLength: 100 },
+          name: { type: 'string' },
+          prompt: { type: 'string' },
+          icon: { type: 'string', default: 'lucide:user' },
+          created_at: { type: 'integer', minimum: 0 }
+        },
+        required: ['id', 'name', 'prompt', 'created_at']
+      }
     }
   };
 
