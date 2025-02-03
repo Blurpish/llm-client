@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col h-full items-center justify-center w-[48rem] mx-auto gap-2 px-8">
+  <div class="flex flex-col h-full items-center justify-center w-[48rem] max-w-full mx-auto gap-2 px-8">
     <h1 class="text-4xl font-bold mb-4">Welcome to LLM Client</h1>
       <ChatInput :pending="false" @send="createThread" />
     </div>

@@ -1,15 +1,22 @@
 <template>
   <div class="flex flex-col items-center w-full h-screen p-4">
-    <div class="flex-grow overflow-y-auto space-y-4 w-full max-w-[1000px] pb-4">
-      <Card v-for="(msg, index) in messages" :key="index" :class="msg.role === 'assistant' ? 'bg-gray-100' : 'bg-gray-50'">
-        <CardContent class="p-2">
-          <div class="flex items-center space-x-2 mb-1">
-            <Icon :name="msg.role === 'assistant' ? 'lucide:bot' : 'lucide:user'" />
-            {{ msg.role === 'assistant' ? 'Assistant' : 'You' }}
-          </div>
+    <div ref="messageContainer" class="flex-grow overflow-y-auto space-y-4 w-full max-w-[1000px] pb-4">
+      <div v-for="(msg, index) in messages" 
+           :key="index" 
+           :class="msg.role === 'assistant' ? 'w-full' : 'flex justify-end w-full'">
+        <Card v-if="msg.role === 'user'" class="bg-gray-50 w-96">
+          <CardContent class="p-2">
+            <div class="flex items-center space-x-2 mb-1">
+              <Icon name="lucide:user" />
+              You
+            </div>
+            <div class="prose prose-sm max-w-none" v-html="processContent(msg.content)"></div>
+          </CardContent>
+        </Card>
+        <div v-else class="w-full">
           <div class="prose prose-sm max-w-none" v-html="processContent(msg.content)"></div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
     <div class="flex justify-center w-full max-w-[1100px]">
       <ChatInput 
@@ -22,15 +29,15 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import OpenAI from "openai"
 import { marked } from "marked"
 import DOMPurify from "dompurify"
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useUserStore } from '@/stores/user'
+import { useAI } from '@/composables/useAI'
 
 type Message = { role: "system" | "user" | "assistant", content: string }
 
@@ -45,14 +52,8 @@ const showHistory = ref(false)
 const masks = ref([])
 let threadDoc: any = null
 
-// Initialize OpenAI instance
-const openai = new OpenAI({
-  baseURL: "https://openrouter.ai/api/v1",
-  apiKey: userStore.openRouterToken,
-  dangerouslyAllowBrowser: true,
-})
+const { activeProvider } = useAI()
 
-// Update mask handling
 const activeMask = ref<any>(null)
 
 function handleMaskChange(mask: any) {
@@ -147,17 +148,28 @@ async function safePatch(patch: object): Promise<void> {
 }
 
 async function generateTitle(message: string): Promise<string> {
+  if (!activeProvider.value) return 'New Thread'
+  
   const prompt = `give a short title, TWO WORDS MAXIMUM to the conversation starting with the following message : ${message}. You must NOT UNDER ANY CIRCUMSTANCES exceed the two words maximum nor send ANYTHING ELSE the the TWO WORDS of the title.`
-  const response = await openai.chat.completions.create({
-    model: "meta-llama/llama-3.2-3b-instruct",
-    messages: [{ role: "user", content: prompt }],
-    stream: false,
-  });
-  // Return title as-is, without quotes.
-  return response.choices[0].message.content.trim();
+  
+  let title = ''
+  const stream = await activeProvider.value.chat([
+    { role: "user", content: prompt }
+  ], userStore.predefinedModels.base.id)
+
+  for await (const chunk of stream) {
+    if (chunk.choices[0].delta?.content) {
+      title += chunk.choices[0].delta.content
+    }
+  }
+
+  return title.trim()
 }
 
+// Replace selectModelForMessage with this version that handles streaming properly
 async function selectModelForMessage(message: string): Promise<string> {
+  if (!activeProvider.value) return userStore.predefinedModels.base.id
+
   const prompt = `You are a model selector. Your task is to analyze a given user message and determine the most appropriate model to handle it. You must return one of the following options:
 
 1 ("mini") if the message is simple, fact-based, or requires only basic responses. Example: definitions, short answers, trivia, or direct lookup tasks.
@@ -170,13 +182,18 @@ Consider complexity, length, and required reasoning.
 
 Message to analyze: ${message}`
 
-  const response = await openai.chat.completions.create({
-    model: "meta-llama/llama-3.2-3b-instruct",
-    messages: [{ role: "user", content: prompt }],
-    stream: false,
-  });
+  let choice = ''
+  const stream = await activeProvider.value.chat([
+    { role: "user", content: prompt }
+  ], userStore.predefinedModels.base.id)
 
-  const choice = response.choices[0].message.content.trim();
+  for await (const chunk of stream) {
+    if (chunk.choices[0].delta?.content) {
+      choice += chunk.choices[0].delta.content
+    }
+  }
+
+  choice = choice.trim()
   const modelMap: Record<string, keyof typeof userStore.predefinedModels> = {
     "1": "mini",
     "2": "base",
@@ -187,7 +204,7 @@ Message to analyze: ${message}`
 }
 
 async function send(payload: { text: string }) {
-  if (!threadDoc) return
+  if (!threadDoc || !activeProvider.value) return
   pending.value = true
 
   // Add the user message to the thread
@@ -230,11 +247,7 @@ async function send(payload: { text: string }) {
     ? await selectModelForMessage(payload.text)
     : userStore.selectedModel.id;
 
-  const stream = await openai.chat.completions.create({
-    model: modelToUse,
-    messages: apiMessages,
-    stream: true,
-  })
+  const stream = await activeProvider.value.chat(apiMessages, modelToUse)
 
   for await (const data of stream) {
     const delta = data.choices[0].delta
@@ -277,6 +290,22 @@ function processContent(content: string): string {
   const markedContent = marked.parse(content, { breaks: true });
   return DOMPurify.sanitize(markedContent);
 }
+
+const messageContainer = ref<HTMLElement | null>(null)
+
+const scrollToBottom = () => {
+  if (messageContainer.value) {
+    messageContainer.value.scrollTop = messageContainer.value.scrollHeight
+  }
+}
+
+// Add watcher for messages
+watch(() => messages.value, () => {
+  // Use nextTick to ensure DOM is updated before scrolling
+  nextTick(() => {
+    scrollToBottom()
+  })
+}, { deep: true })
 </script>
 
 <style>

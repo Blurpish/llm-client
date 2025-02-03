@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-6 mt-4">
+  <div class="space-y-6 mt-4 container">
     <!-- User Profile Card -->
     <Card>
       <CardHeader>

@@ -268,6 +268,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { useSidebar } from '@/components/ui/sidebar'
 
 const menuItems = [
   { title: "Home", url: "/", icon: "lucide:house" },
@@ -282,6 +283,25 @@ const pinnedThreads = computed(() => threads.value.filter(t => t.pinned))
 const folders = ref([])
 const showFolderDialog = ref(false)
 const newFolderName = ref('')
+
+const { 
+  toggleSidebar 
+} = useSidebar()
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeyDown)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeyDown)
+})
+
+function handleKeyDown(event: KeyboardEvent) {
+  if (event.ctrlKey && event.key === '\\') {
+    event.preventDefault()
+    toggleSidebar()
+  }
+}
 
 onMounted(async () => {
   if ((globalThis as any).database?.folders) {
