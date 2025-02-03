@@ -1,10 +1,8 @@
 <template>
-  <div id="container">
-   <div id="new-thread-form">
-      <Input type="text" v-model="message" placeholder="Type your message" />
-      <Button @click="createThread">Send</Button>
+  <div class="flex flex-col h-full items-center justify-center w-[36rem] mx-auto gap-2 px-8">
+    <h1 class="text-4xl font-bold mb-4">Welcome to LLM Client</h1>
+      <ChatInput :pending="false" @send="createThread" />
     </div>
-  </div>
 </template>
 
 <script lang="ts" setup>
@@ -24,39 +22,9 @@ onMounted(async () => {
 })
 
 // Create new thread and delegate message processing to thread/[id].vue
-async function createThread() {
-  if (!message.value.trim()) return;
+async function createThread(messageData) {
   const id = Date.now().toString()
-  router.push(`/thread/${id}?initialMessage=${encodeURIComponent(message.value.trim())}`)
+  router.push(`/thread/${id}?initialMessage=${messageData.text}`);
   message.value = ""
 }
 </script>
-
-<style scoped>
-#container {
-  display: flex;
-  height: 100vh;
-  align-items: center;
-  justify-content: center;
-  background: #fff;
-}
-#menu-bar {
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  cursor: pointer;
-}
-#new-thread-form {
-  display: flex;
-  gap: 8px;
-}
-#new-thread-form input {
-  font-size: 1.2rem;
-  padding: 12px;
-  width: 300px;
-}
-#new-thread-form button {
-  font-size: 1.2rem;
-  padding: 12px;
-}
-</style>

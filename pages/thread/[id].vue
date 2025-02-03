@@ -1,7 +1,6 @@
 <template>
-  <ThreadHeader />
-  <div class="flex flex-col mx-auto max-w-[1000px] h-[92.5vh] px-4">
-    <div class="flex-grow overflow-y-auto space-y-4">
+  <div class="flex flex-col items-center w-full h-screen p-4">
+    <div class="flex-grow overflow-y-auto space-y-4 max-w-[1000px] pb-4">
       <Card v-for="(msg, index) in messages" :key="index" :class="msg.role === 'assistant' ? 'bg-gray-100' : 'bg-gray-50'">
         <CardContent class="p-2">
           <div class="flex items-center space-x-2 mb-1">
@@ -12,21 +11,13 @@
         </CardContent>
       </Card>
     </div>
-    <div class="flex justify-center w-full">
-      <Card class="w-full max-w-md rounded-full shadow-lg">
-        <div class="flex items-center p-2">
-          <Input id="query-input" type="text" placeholder="Ask me anything" v-model="query" :disabled="pending" class="w-full !border-none !focus:ring-0 !outline-hidden" />
-          <Button @click="send" class="rounded-full p-0 !w-10 h-8 flex items-center justify-center" :disabled="query == ''">
-            <Icon name="lucide:send" class="w-4 h-4" />
-          </Button>
-        </div>
-      </Card>
+    <div class="flex justify-center w-full max-w-[1100px]">
+      <ChatInput :pending="pending" @send="send" />
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
-import Header from '~/components/thread/header.vue'
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import OpenAI from "openai"
@@ -35,6 +26,7 @@ import DOMPurify from "dompurify"
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { useUserStore } from '@/stores/user'
 
 type Message = { role: "system" | "user" | "assistant", content: string }
 
@@ -42,8 +34,8 @@ const route = useRoute()
 const router = useRouter()
 const threadId = route.params.id as string
 
+const userStore = useUserStore()
 const messages = ref<Message[]>([])
-const query = ref("")
 const pending = ref(false)
 const showHistory = ref(false)
 let threadDoc: any = null
@@ -51,9 +43,24 @@ let threadDoc: any = null
 // Initialize OpenAI instance
 const openai = new OpenAI({
   baseURL: "https://openrouter.ai/api/v1",
-  apiKey: useCookie("api-key").value ?? undefined,
+  apiKey: userStore.openRouterToken,
   dangerouslyAllowBrowser: true,
 })
+
+// NEW: Helper to build custom pre-prompt using custom instructions
+async function getCustomPrompt(): Promise<string> {
+  const db = (globalThis as any).database;
+  const profileDoc = await db.profile.findOne().exec();
+  if (!profileDoc) return '';
+  
+  const { name, occupation, traits, other } = profileDoc.customInstructions;
+  let prompt = "Below are the custom instructions and infos provided by the user, you should strictly follow them:\n";
+  if (name) prompt += `Name: ${name.trim()}\n`;
+  if (occupation) prompt += `Occupation: ${occupation.trim()}\n`;
+  if (traits) prompt += `Traits: ${traits.trim()}\n`;
+  if (other) prompt += `Other instructions: ${other.trim()}\n`;
+  return prompt.trim();
+}
 
 onMounted(async () => {
   // Try to load the thread document by id
@@ -85,7 +92,6 @@ onMounted(async () => {
     })
   }
 
-  // If there's an initialMessage and the last message is user, trigger assistant reply
   if (route.query.initialMessage) {
     const lastMsg = messages.value[messages.value.length - 1]
     if (lastMsg && lastMsg.role === "user") {
@@ -93,6 +99,36 @@ onMounted(async () => {
     }
   }
 })
+
+async function safePatch(patch: object): Promise<void> {
+  let success = false;
+  while (!success) {
+    try {
+      // Re-read document for up-to-date revision
+      threadDoc = await (globalThis as any).database.threads.findOne({ selector: { id: threadId } }).exec();
+      await threadDoc.patch(patch);
+      success = true;
+    } catch (err: any) {
+      if (err.status === 409) {
+        // Conflict: wait a bit and retry
+        await new Promise(resolve => setTimeout(resolve, 100));
+      } else {
+        throw err;
+      }
+    }
+  }
+}
+
+async function generateTitle(message: string): Promise<string> {
+  const prompt = `give a short title (THREE WORDS MAXIMUM) to the conversation starting with the following message : ${message}. You must NOT UNDER ANY CIRCUMSTANCES exceed the three words maximum.`
+  const response = await openai.chat.completions.create({
+    model: "meta-llama/llama-3.2-1b-instruct",
+    messages: [{ role: "user", content: prompt }],
+    stream: false,
+  });
+  // Return title as-is, without quotes.
+  return response.choices[0].message.content.trim();
+}
 
 // Trigger the assistant reply process using the initialMessage
 async function processAssistant() {
@@ -104,13 +140,16 @@ async function processAssistant() {
   const currentMessages = freshDoc.get('messages') || []
   const assistantMsg = { id: (Date.now() + 1).toString(), role: "assistant", content: "", timestamp: Date.now() }
   let updatedMessages = [...currentMessages, assistantMsg]
-  await freshDoc.patch({ messages: updatedMessages })
+  await safePatch({ messages: updatedMessages })
   messages.value = updatedMessages
+
+  const prePrompt = await getCustomPrompt()
+  const apiMessages = prePrompt ? [{ role: "system", content: prePrompt }, ...messages.value] : messages.value
 
   // Start streaming assistant reply
   const stream = await openai.chat.completions.create({
-    model: "openai/gpt-3.5-turbo",
-    messages: messages.value,
+    model: userStore.selectedModel.id,
+    messages: apiMessages,
     stream: true,
   })
 
@@ -122,7 +161,7 @@ async function processAssistant() {
       const lastMsg = { ...current[current.length - 1] }
       lastMsg.content += delta.content
       updatedMessages = [...current.slice(0, -1), lastMsg]
-      await freshDoc.patch({ messages: updatedMessages })
+      await safePatch({ messages: updatedMessages })
       messages.value = updatedMessages
     }
     if (data.choices[0].finish_reason) break
@@ -130,7 +169,7 @@ async function processAssistant() {
   pending.value = false
 }
 
-async function send() {
+async function send(payload: { text: string }) {
   if (!threadDoc) return
   pending.value = true
 
@@ -139,17 +178,21 @@ async function send() {
   const userMsg: Message = { 
     id: Date.now().toString(), 
     role: "user", 
-    content: query.value.trim(), 
+    content: payload.text.trim(), 
     timestamp: Date.now() 
   }
   let currentMessages = freshDoc.get('messages') || []
   let updatedMessages = [...currentMessages, userMsg]
-  await freshDoc.patch({ messages: updatedMessages })
+  await safePatch({ messages: updatedMessages })
   messages.value = updatedMessages
-  query.value = ""
+
+  // NEW: If it's the first message, generate and update the thread title
+  if (freshDoc.get('title') === 'New Thread') {
+    const title = await generateTitle(payload.text)
+    await safePatch({ title })
+  }
 
   // Then trigger assistant reply as in processAssistant
-  // Re-fetch and add assistant placeholder, then stream reply (code similar to processAssistant)
   freshDoc = await (globalThis as any).database.threads.findOne({ selector: { id: threadId } }).exec()
   currentMessages = freshDoc.get('messages') || []
   const assistantMsg: Message = { 
@@ -159,12 +202,15 @@ async function send() {
     timestamp: Date.now() 
   }
   updatedMessages = [...currentMessages, assistantMsg]
-  await freshDoc.patch({ messages: updatedMessages })
+  await safePatch({ messages: updatedMessages })
   messages.value = updatedMessages
 
+  const prePrompt = await getCustomPrompt()
+  const apiMessages = prePrompt ? [{ role: "system", content: prePrompt }, ...messages.value] : messages.value
+
   const stream = await openai.chat.completions.create({
-    model: "openai/gpt-3.5-turbo",
-    messages: messages.value,
+    model: userStore.selectedModel.id,
+    messages: apiMessages,
     stream: true,
   })
 
@@ -176,7 +222,7 @@ async function send() {
       const lastMsg = { ...currentMessages[currentMessages.length - 1] }
       lastMsg.content += delta.content
       updatedMessages = [...currentMessages.slice(0, -1), lastMsg]
-      await freshDoc.patch({ messages: updatedMessages })
+      await safePatch({ messages: updatedMessages })
       messages.value = updatedMessages
     }
     if (data.choices[0].finish_reason) break

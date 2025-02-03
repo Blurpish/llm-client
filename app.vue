@@ -1,8 +1,8 @@
 <template>
   <SidebarProvider>
     <AppSidebar />
+    <SidebarTrigger />
     <main class="w-full h-media">
-      <SidebarTrigger />
       <NuxtPage />
     </main>
   </SidebarProvider>

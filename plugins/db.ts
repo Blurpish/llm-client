@@ -61,6 +61,16 @@ export default defineNuxtPlugin(async () => {
           threads: {
             type: 'array',
             items: { type: 'string' }
+          },
+          customInstructions: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              occupation: { type: 'string' },
+              traits: { type: 'string' },
+              other: { type: 'string' }
+            },
+            default: { name: "", occupation: "", traits: "", other: "" }
           }
         },
         required: ['id', 'object', 'created_at', 'name', 'email', 'avatar', 'bio', 'threads']
@@ -111,6 +121,9 @@ export default defineNuxtPlugin(async () => {
     });
     replicationPool.error$.subscribe(err => {
       console.error('Replication error:', err);
+    });
+    replicationPool.peerStates$.subscribe(peerStates => {
+      console.log('Peer states:', peerStates);
     });
     // Optionally, you can cancel replication when needed:
     // replicationPool.cancel();
