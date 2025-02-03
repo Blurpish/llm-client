@@ -1,13 +1,13 @@
 <template>
   <div class="flex flex-col items-center w-full h-screen p-4">
-    <div class="flex-grow overflow-y-auto space-y-4 max-w-[1000px] pb-4">
+    <div class="flex-grow overflow-y-auto space-y-4 w-full max-w-[1000px] pb-4">
       <Card v-for="(msg, index) in messages" :key="index" :class="msg.role === 'assistant' ? 'bg-gray-100' : 'bg-gray-50'">
         <CardContent class="p-2">
           <div class="flex items-center space-x-2 mb-1">
             <Icon :name="msg.role === 'assistant' ? 'lucide:bot' : 'lucide:user'" />
             {{ msg.role === 'assistant' ? 'Assistant' : 'You' }}
           </div>
-          <div v-html="msg.content"></div>
+          <div class="prose prose-sm max-w-none" v-html="processContent(msg.content)"></div>
         </CardContent>
       </Card>
     </div>
@@ -63,12 +63,9 @@ async function getCustomPrompt(): Promise<string> {
 }
 
 onMounted(async () => {
-  // Try to load the thread document by id
   threadDoc = await (globalThis as any).database.threads.findOne({ selector: { id: threadId } }).exec()
   
-  // If threadDoc doesn't exist and an initialMessage is provided, create it
-  if (!threadDoc && route.query.initialMessage) {
-    const initialMsg = decodeURIComponent(route.query.initialMessage as string)
+  if (!threadDoc) {
     const newThread = {
       id: threadId,
       object: 'thread',
@@ -76,9 +73,7 @@ onMounted(async () => {
       title: 'New Thread',
       timestamp: Date.now(),
       tool_resources: null,
-      messages: [
-        { id: '1', role: 'user', content: initialMsg, timestamp: Date.now() }
-      ]
+      messages: []
     }
     await (globalThis as any).database.threads.insert(newThread)
     threadDoc = await (globalThis as any).database.threads.findOne({ selector: { id: threadId } }).exec()
@@ -92,11 +87,10 @@ onMounted(async () => {
     })
   }
 
-  if (route.query.initialMessage) {
-    const lastMsg = messages.value[messages.value.length - 1]
-    if (lastMsg && lastMsg.role === "user") {
-      processAssistant()
-    }
+  // Only process initial message if thread is empty and we have an initialMessage
+  if (messages.value.length === 0 && route.query.initialMessage) {
+    const initialMsg = decodeURIComponent(route.query.initialMessage as string)
+    send({ text: initialMsg })
   }
 })
 
@@ -120,9 +114,9 @@ async function safePatch(patch: object): Promise<void> {
 }
 
 async function generateTitle(message: string): Promise<string> {
-  const prompt = `give a short title (THREE WORDS MAXIMUM) to the conversation starting with the following message : ${message}. You must NOT UNDER ANY CIRCUMSTANCES exceed the three words maximum.`
+  const prompt = `give a short title, TWO WORDS MAXIMUM to the conversation starting with the following message : ${message}. You must NOT UNDER ANY CIRCUMSTANCES exceed the two words maximum nor send ANYTHING ELSE the the TWO WORDS of the title.`
   const response = await openai.chat.completions.create({
-    model: "meta-llama/llama-3.2-1b-instruct",
+    model: "meta-llama/llama-3.2-3b-instruct",
     messages: [{ role: "user", content: prompt }],
     stream: false,
   });
@@ -130,43 +124,33 @@ async function generateTitle(message: string): Promise<string> {
   return response.choices[0].message.content.trim();
 }
 
-// Trigger the assistant reply process using the initialMessage
-async function processAssistant() {
-  if (!threadDoc) return
-  pending.value = true
+async function selectModelForMessage(message: string): Promise<string> {
+  const prompt = `You are a model selector. Your task is to analyze a given user message and determine the most appropriate model to handle it. You must return one of the following options:
 
-  // Re-fetch before adding assistant placeholder
-  let freshDoc = await (globalThis as any).database.threads.findOne({ selector: { id: threadId } }).exec()
-  const currentMessages = freshDoc.get('messages') || []
-  const assistantMsg = { id: (Date.now() + 1).toString(), role: "assistant", content: "", timestamp: Date.now() }
-  let updatedMessages = [...currentMessages, assistantMsg]
-  await safePatch({ messages: updatedMessages })
-  messages.value = updatedMessages
+1 ("mini") if the message is simple, fact-based, or requires only basic responses. Example: definitions, short answers, trivia, or direct lookup tasks.
+2 ("base") if the message requires standard responses, general knowledge, creative tasks, or common tasks like summarization, explanations, or structured responses.
+3 ("max") if the message is complex, involves reasoning, coding, multi-step logic, or detailed analysis.
 
-  const prePrompt = await getCustomPrompt()
-  const apiMessages = prePrompt ? [{ role: "system", content: prePrompt }, ...messages.value] : messages.value
+Rules:
+Do not explain your choice—only return the number.
+Consider complexity, length, and required reasoning.
 
-  // Start streaming assistant reply
-  const stream = await openai.chat.completions.create({
-    model: userStore.selectedModel.id,
-    messages: apiMessages,
-    stream: true,
-  })
+Message to analyze: ${message}`
 
-  for await (const data of stream) {
-    const delta = data.choices[0].delta
-    if (delta && delta.content) {
-      freshDoc = await (globalThis as any).database.threads.findOne({ selector: { id: threadId } }).exec()
-      let current = freshDoc.get('messages') || []
-      const lastMsg = { ...current[current.length - 1] }
-      lastMsg.content += delta.content
-      updatedMessages = [...current.slice(0, -1), lastMsg]
-      await safePatch({ messages: updatedMessages })
-      messages.value = updatedMessages
-    }
-    if (data.choices[0].finish_reason) break
-  }
-  pending.value = false
+  const response = await openai.chat.completions.create({
+    model: "meta-llama/llama-3.2-3b-instruct",
+    messages: [{ role: "user", content: prompt }],
+    stream: false,
+  });
+
+  const choice = response.choices[0].message.content.trim();
+  const modelMap: Record<string, keyof typeof userStore.predefinedModels> = {
+    "1": "mini",
+    "2": "base",
+    "3": "max"
+  };
+
+  return userStore.predefinedModels[modelMap[choice] || "base"].id;
 }
 
 async function send(payload: { text: string }) {
@@ -208,8 +192,13 @@ async function send(payload: { text: string }) {
   const prePrompt = await getCustomPrompt()
   const apiMessages = prePrompt ? [{ role: "system", content: prePrompt }, ...messages.value] : messages.value
 
+  console.log(userStore.autoModelSelect)
+  const modelToUse = userStore.autoModelSelect 
+    ? await selectModelForMessage(payload.text)
+    : userStore.selectedModel.id;
+
   const stream = await openai.chat.completions.create({
-    model: userStore.selectedModel.id,
+    model: modelToUse,
     messages: apiMessages,
     stream: true,
   })
@@ -249,4 +238,25 @@ async function newThread() {
   await (globalThis as any).database.threads.insert(newThreadObj)
   router.push(`/thread/${id}`)
 }
+
+// Add helper function to process content with markdown and sanitization
+function processContent(content: string): string {
+  const markedContent = marked.parse(content, { breaks: true });
+  return DOMPurify.sanitize(markedContent);
+}
 </script>
+
+<style>
+.prose pre {
+  background: #f3f4f6;
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  overflow-x: auto;
+}
+
+.prose code {
+  background: #f3f4f6;
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+}
+</style>
