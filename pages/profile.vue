@@ -57,7 +57,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import jsQR from 'jsqr';
-import { useUserStore } from '/home/eban/Projects/Dev/Perso/llm-client/stores/user';
 
 const userStore = useUserStore();
 
