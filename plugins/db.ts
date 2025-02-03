@@ -151,7 +151,7 @@ export default defineNuxtPlugin(async () => {
         connectionHandlerCreator: getConnectionHandlerSimplePeer({
           signalingServerUrl: 'wss://llm-client-signaling.eban.eu.org',
           config: {
-            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478?transport=udp' }]
+            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
           }
         }),
         pull: {},
