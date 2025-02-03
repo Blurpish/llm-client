@@ -10,9 +10,11 @@ import { RxDBDevModePlugin } from 'rxdb/plugins/dev-mode';
 import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie';
 import { wrappedValidateAjvStorage } from 'rxdb/plugins/validate-ajv';
 import { replicateWebRTC, getConnectionHandlerSimplePeer } from 'rxdb/plugins/replication-webrtc';
+import { RxDBMigrationSchemaPlugin } from 'rxdb/plugins/migration-schema';
 
 export default defineNuxtPlugin(async () => {
   addRxPlugin(RxDBDevModePlugin);
+  addRxPlugin(RxDBMigrationSchemaPlugin);
 
   const collectionsConfig = {
     threads: {
@@ -40,7 +42,9 @@ export default defineNuxtPlugin(async () => {
               },
               required: ['id', 'role', 'content', 'timestamp']
             }
-          }
+          },
+          pinned: { type: 'boolean', default: false },
+          folderPath: { type: 'string', default: '/' }
         },
         required: ['id', 'object', 'created_at', 'title', 'timestamp', 'messages']
       }
@@ -75,6 +79,21 @@ export default defineNuxtPlugin(async () => {
         },
         required: ['id', 'object', 'created_at', 'name', 'email', 'avatar', 'bio', 'threads']
       }
+    },
+    folders: {
+      schema: {
+        version: 0,
+        primaryKey: 'id',
+        type: 'object',
+        properties: {
+          id: { type: 'string', maxLength: 100 },
+          name: { type: 'string' },
+          path: { type: 'string' },
+          parentPath: { type: 'string' },
+          created_at: { type: 'integer', minimum: 0 }
+        },
+        required: ['id', 'name', 'path', 'parentPath', 'created_at']
+      }
     }
   };
 
@@ -87,7 +106,7 @@ export default defineNuxtPlugin(async () => {
     });
     (globalThis as any).database = database;
     await database.addCollections(collectionsConfig);
-    // Retrieve the user profile (if any) and set userId
+    
     const profileDoc = await database.profile.findOne().exec();
     (database as any).userId = profileDoc ? profileDoc.id : null;
   } else {
@@ -122,9 +141,7 @@ export default defineNuxtPlugin(async () => {
     replicationPool.error$.subscribe(err => {
       console.error('Replication error:', err);
     });
-    replicationPool.peerStates$.subscribe(peerStates => {
-      console.log('Peer states:', peerStates);
-    });
+    replicationPool.peerStates$.subscribe(() => {});
     // Optionally, you can cancel replication when needed:
     // replicationPool.cancel();
   })();
