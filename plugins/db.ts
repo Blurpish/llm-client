@@ -141,23 +141,27 @@ export default defineNuxtPlugin(async () => {
     }
   }
   
-  // Setup replication for the threads collection using WebRTC
+  // Add replication for every collection.
   const database = (globalThis as any).database;
   (async () => {
-    const replicationPool = await replicateWebRTC({
-      collection: database.threads,
-      topic: `eban-threads-pool-${(database as any).userId}`,
-      connectionHandlerCreator: getConnectionHandlerSimplePeer({
-        signalingServerUrl: 'wss://llm-client-signaling.eban.eu.org'
-      }),
-      pull: {},
-      push: {}
+    Object.keys(collectionsConfig).forEach(async (collectionKey) => {
+      const replicationPool = await replicateWebRTC({
+        collection: database[collectionKey],
+        topic: `eban-${collectionKey}-pool-${(database as any).userId}`,
+        connectionHandlerCreator: getConnectionHandlerSimplePeer({
+          signalingServerUrl: 'wss://llm-client-signaling.eban.eu.org'
+        }),
+        pull: {},
+        push: {}
+      });
+      replicationPool.error$.subscribe(err => {
+        console.error(`Replication error in "${collectionKey}":`, err);
+      });
+      replicationPool.peerStates$.subscribe(() => {
+        console.log(replicationPool.peerStates$)
+      });
+      // Optionally, you can cancel replication when needed:
+      // replicationPool.cancel();
     });
-    replicationPool.error$.subscribe(err => {
-      console.error('Replication error:', err);
-    });
-    replicationPool.peerStates$.subscribe(() => {});
-    // Optionally, you can cancel replication when needed:
-    // replicationPool.cancel();
   })();
 });
