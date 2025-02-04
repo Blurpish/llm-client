@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col items-center w-full h-screen p-4">
+  <div class="flex flex-col items-center w-full h-[100dvh] p-4">
     <div ref="messageContainer" class="flex-grow overflow-y-auto space-y-4 w-full max-w-[1000px] pb-4">
       <div v-for="(msg, index) in messages" 
            :key="index" 
@@ -66,12 +66,13 @@ async function getCustomPrompt(): Promise<string> {
   const profileDoc = await db.profile.findOne().exec();
   let prompt = '';
   
-  // Use mask from store
+  // If a mask is used, only use the mask content.
   if (userStore.currentMask) {
-    prompt += userStore.currentMask.prompt + '\n\n';
+    prompt += userStore.currentMask.prompt;
+    return prompt.trim();
   }
   
-  // Add custom instructions if they exist
+  // Otherwise, add custom instructions if they exist.
   if (profileDoc) {
     const { name, occupation, traits, other } = profileDoc.customInstructions;
     prompt += "Below are the custom instructions and infos provided by the user:\n";

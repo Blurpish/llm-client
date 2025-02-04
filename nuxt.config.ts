@@ -21,5 +21,10 @@ export default defineNuxtConfig({
       RTC_ICE_USERNAME: process.env.METERED_TURN_USERNAME,
       RTC_ICE_CREDENTIAL: process.env.METERED_TURN_PASSWORD
     }
+  },
+  vite: {
+    define: {
+      global: 'globalThis'
+    }
   }
 })

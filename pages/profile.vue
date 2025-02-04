@@ -58,10 +58,13 @@
       </CardHeader>
       <CardContent>
         <div class="space-y-2">
-          <!-- Loop through available providers using Switch -->
-          <div v-for="(value, key) in userStore.enabledProviders" :key="key" class="flex items-center space-x-2">
-            <Switch v-model:checked="userStore.enabledProviders[key]" :id="key" />
-            <Label :for="key">{{ key }}</Label>
+          <!-- Loop through providers from useAI -->
+          <div v-for="provider in providersList" :key="provider.id" class="flex items-center space-x-2">
+            <Switch 
+              v-model:checked="userStore.enabledProviders[provider.id]" 
+              :id="provider.id" 
+            />
+            <Label :for="provider.id">{{ provider.name }}</Label>
           </div>
         </div>
       </CardContent>
@@ -74,8 +77,11 @@ import { ref, computed, onMounted } from 'vue';
 import jsQR from 'jsqr';
 import { useUserStore } from '@/stores/user';
 import { Switch } from '@/components/ui/switch'; // NEW: Import the Switch component
+import { useAI } from '@/composables/useAI'
 
 const userStore = useUserStore();
+const { providers } = useAI()
+const providersList = computed(() => Array.from(providers.values()))
 
 const userId = ref('');
 const scanning = ref(false);

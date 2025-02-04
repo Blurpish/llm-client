@@ -26,6 +26,7 @@ const activeProvider = ref<AIProvider | null>(null)
 
 export function useAI() {
   const registerProvider = (provider: AIProvider) => {
+    console.log('Registering provider', provider)
     providers.set(provider.id, provider)
     // Set as active if first provider or no active provider
     if (!activeProvider.value) {

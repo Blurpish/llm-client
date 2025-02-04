@@ -18,9 +18,7 @@ export const useUserStore = defineStore('user', () => {
   const currentMask = ref<any>(null);
 
   // NEW: Provider settings for multi-provider support
-  const titleProvider = ref('openrouter');         // Provider to use for title generation
-  const completionProvider = ref('openrouter');      // Provider to use for completions
-  const enabledProviders = ref({                     // Enable/disable providers
+  const enabledProviders = ref({
     openrouter: true,
     ollama: true,
   });

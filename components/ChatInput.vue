@@ -28,7 +28,7 @@
       <div class="flex flex-col space-y-2 p-2">
         <!-- Top row: Input only -->
         <Input id="query-input" type="text" placeholder="Ask me anything" v-model="query" :disabled="pending"
-          @keyup.enter="handleSend"
+          @keyup.enter="handleSend" autocomplete="off"
           class="w-full bg-transparent border-none p-1 ![--tw-ring-offset-shadow:0] ![--tw-ring-shadow:0] !shadow-none" />
 
         <div class="flex items-center justify-between space-x-2">

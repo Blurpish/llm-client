@@ -6,10 +6,10 @@
       <Button @click="showNewMaskDialog">Create New Mask</Button>
     </div>
 
-    <div class="grid gap-4">
+    <div class="flex gap-4">
       <Card v-for="mask in masks" :key="mask.id" class="w-96">
         <CardHeader>
-          <div class="flex items-center gap-2">
+          <div class="flex flex-wrap items-center gap-2">
             <Icon :name="'lucide:' + mask.icon || 'lucide:user'" class="w-5 h-5" />
             <CardTitle>{{ mask.name }}</CardTitle>
           </div>

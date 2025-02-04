@@ -1,7 +1,7 @@
 <template>
   <SidebarProvider>
     <AppSidebar />
-    <main class="w-full h-media relative">
+    <main class="w-full h-[100dvh] relative">
       <SidebarTrigger class="absolute bg-white top-2 left-2" />
       <NuxtPage />
     </main>
