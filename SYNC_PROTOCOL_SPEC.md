@@ -39,6 +39,8 @@ The protocol emphasizes:
 2. **P2P Transport** using **WebRTC** for direct connections when both clients are online.
 3. **Optional “Diff Server”** to handle scenarios where a client is offline or otherwise unreachable, allowing partial synchronization via a small ephemeral data store.
 
+This protocol can also be viewed at the "network" level, where each network has multiple devices sharing the same encryption key and accountId. An update from any device should eventually propagate to all other devices in that network.
+
 **Key points**:
 
 - Each client has a **unique client ID** (e.g., `clientId`).
@@ -68,6 +70,12 @@ The protocol emphasizes:
 - May or may not be the same host as the diff server, but logically they are separate roles.
 - Does **not** store or process user data except for ephemeral signaling messages.
 
+### 2.4 Network
+A network is a group of devices tied by a single accountId and encryption key. Devices in the same network synchronize database changes among themselves. If there are three devices, and device 1 makes a database update, devices 2 and 3 each receive the change (either directly via P2P connections or through the diff server if they are offline).
+
+### 2.5 Device Capabilities
+Each device can advertise capabilities. By default, it has none. For AI streaming, if a client has the “ollama-serve” plugin enabled, its reported capability is "ollama-serve." Implementations may keep a simple list of devices in the network, including their connectivity status (online/offline) and capabilities.
+
 ---
 
 ## 3. System Architecture
@@ -83,6 +91,8 @@ The protocol emphasizes:
   │ RxDB Database │         │  Diff Server  │   │ RxDB Database │
   └───────────────┘         └───────────────┘   └───────────────┘
 ```
+
+This diagram illustrates two clients, but the architecture can scale to any number of clients in a network. Each additional client follows the same P2P and optional diff server flow for synchronization.
 
 1. **Client 1** and **Client 2** connect via **WebRTC** for both database synchronization and AI streaming.
 2. **Diff Server (Optional)** holds encrypted diffs if a direct P2P connection cannot be established at the time of an update.
@@ -195,6 +205,8 @@ Each **operation type** is defined in the following section.
      }
      ```
    - This can be part of the normal push/ack flow or a separate message.
+
+When initiating a DB_SYNC_INIT or DB_DIFF_PUSH, a device should broadcast changes to all present peers in the network. Offline peers can be handled via the diff server as before.
 
 ### 7.2 Optional Diff Server Workflow
 
