@@ -1,83 +1,89 @@
 <template>
-  <div class="space-y-6 mt-4 container">
-    <!-- User Profile Card -->
-    <Card>
-      <CardHeader>
-        <CardTitle>User Profile</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div class="flex gap-4">
-          <img :src="qrCodeUrl" alt="User QR Code" class="w-24 h-24 rounded" />
-          <div>
-            <p>User ID: {{ userId }}</p>
-            <Button @click="startScan">Scan for Pairing</Button>
-          </div>
-        </div>
-        <div v-if="scanning" class="mt-4">
-          <video ref="videoEl" autoplay playsinline class="w-full rounded"></video>
-          <canvas ref="canvasEl" class="hidden"></canvas>
-          <p>Scanning in progress...</p>
-        </div>
-      </CardContent>
-    </Card>
-
-    <!-- Custom Instructions Card -->
-    <Card>
-      <CardHeader>
-        <CardTitle>Custom Instructions</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div class="space-y-4">
-          <div>
-            <Label for="ci-name">How should the AI address you?</Label>
-            <Input id="ci-name" type="text" v-model="localCustomInstructions.name" 
-              @change="updateProfile" placeholder="Enter your name prompt" />
-          </div>
-          <div>
-            <Label for="ci-occupation">What is your occupation?</Label>
-            <Input id="ci-occupation" type="text" v-model="localCustomInstructions.occupation" 
-              @change="updateProfile" placeholder="Enter occupation prompt" />
-          </div>
-          <div>
-            <Label for="ci-traits">What traits should the AI have?</Label>
-            <Input id="ci-traits" type="text" v-model="localCustomInstructions.traits" 
-              @change="updateProfile" placeholder="Enter traits prompt" />
-          </div>
-          <div>
-            <Label for="ci-other">Other instructions</Label>
-            <Textarea id="ci-other" v-model="localCustomInstructions.other" 
-              @change="updateProfile" placeholder="Other instructions"></Textarea>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-
-    <Card>
-      <CardHeader>
-        <CardTitle>AI Providers</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div class="space-y-2">
-          <!-- Loop through providers from useAI -->
-          <div v-for="provider in providersList" :key="provider.id" class="mb-4">
-            <div class="flex items-center space-x-2">
-              <Switch 
-                v-model:checked="userStore.enabledProviders[provider.id]" 
-                :id="provider.id" 
-              />
-              <Label :for="provider.id">{{ provider.name }}</Label>
+  <div class="container mt-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Left Column -->
+      <div class="space-y-6">
+        <!-- User Profile Card -->
+        <Card>
+          <CardHeader>
+            <CardTitle>User Profile</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div class="flex gap-4">
+              <img :src="qrCodeUrl" alt="User QR Code" class="w-24 h-24 rounded" />
+              <div>
+                <p>User ID: {{ userId }}</p>
+                <Button @click="startScan">Scan for Pairing</Button>
+              </div>
             </div>
-            <!-- Display Input component if provider supports configuration -->
-            <div v-if="mapping[provider.id]" class="ml-6 mt-1">
-              <Input 
-                v-model="userStore[mapping[provider.id]]" 
-                :disabled="!userStore.enabledProviders[provider.id]" 
-                :placeholder="'Enter API key for ' + provider.name" />
+            <div v-if="scanning" class="mt-4">
+              <video ref="videoEl" autoplay playsinline class="w-full rounded"></video>
+              <canvas ref="canvasEl" class="hidden"></canvas>
+              <p>Scanning in progress...</p>
             </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+          </CardContent>
+        </Card>
+
+        <!-- Custom Instructions Card -->
+        <Card>
+          <CardHeader>
+            <CardTitle>Custom Instructions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div class="space-y-4">
+              <div>
+                <Label for="ci-name">How should the AI address you?</Label>
+                <Input id="ci-name" type="text" v-model="localCustomInstructions.name" 
+                  @change="updateProfile" placeholder="Enter your name prompt" />
+              </div>
+              <div>
+                <Label for="ci-occupation">What is your occupation?</Label>
+                <Input id="ci-occupation" type="text" v-model="localCustomInstructions.occupation" 
+                  @change="updateProfile" placeholder="Enter occupation prompt" />
+              </div>
+              <div>
+                <Label for="ci-traits">What traits should the AI have?</Label>
+                <Input id="ci-traits" type="text" v-model="localCustomInstructions.traits" 
+                  @change="updateProfile" placeholder="Enter traits prompt" />
+              </div>
+              <div>
+                <Label for="ci-other">Other instructions</Label>
+                <Textarea id="ci-other" v-model="localCustomInstructions.other" 
+                  @change="updateProfile" placeholder="Other instructions"></Textarea>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <!-- Right Column -->
+      <div class="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>AI Providers</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div class="space-y-2">
+              <div v-for="provider in providersList" :key="provider.id" class="mb-4">
+                <div class="flex items-center space-x-2">
+                  <Switch 
+                    v-model:checked="userStore.enabledProviders[provider.id]" 
+                    :id="provider.id" 
+                  />
+                  <Label :for="provider.id">{{ provider.name }}</Label>
+                </div>
+                <div v-if="mapping[provider.id]" class="ml-6 mt-1">
+                  <Input 
+                    v-model="userStore[mapping[provider.id]]" 
+                    :disabled="!userStore.enabledProviders[provider.id]" 
+                    :placeholder="'Enter API key for ' + provider.name" />
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   </div>
 </template>
 

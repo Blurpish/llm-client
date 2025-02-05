@@ -57,7 +57,7 @@
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useAI } from '@/composables/useAI'
 import { useUserStore } from '@/stores/user'
-import { listModels } from '@huggingface/hub'
+import { set } from '@vueuse/core';
 
 const props = defineProps<{ open: boolean; editingDefault?: boolean }>()
 const emit = defineEmits<{
@@ -72,10 +72,18 @@ const open = computed({
 
 const { activeProvider, providers, setActiveProvider } = useAI()
 const userStore = useUserStore()
+const { enabledProviders: enabledProvidersRef } = storeToRefs(useUserStore())
 
-// Only include enabled providers
 const enabledProviders = computed(() => {
-  return Array.from(providers.values()).filter(provider => userStore.enabledProviders[provider.id])
+  return Array.from(providers.values()).filter(provider => enabledProvidersRef.value[provider.id])
+})
+
+setActiveProvider(enabledProviders.value[0]?.id)
+
+watch(enabledProviders, (newProviders) => {
+  if (newProviders.length && (!activeProvider.value || !newProviders.some(p => p.id === activeProvider.value.id))) {
+    setActiveProvider(newProviders[0].id)
+  }
 })
 
 const searchTerm = ref('')
