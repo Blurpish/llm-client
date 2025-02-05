@@ -27,8 +27,8 @@
     <Card class="w-full shadow-lg bg-gray-100">
       <div class="flex flex-col space-y-2 p-2">
         <!-- Top row: Input only -->
-        <Input id="query-input" type="text" placeholder="Ask me anything" v-model="query" :disabled="pending"
-          @keyup.enter="handleSend" autocomplete="off"
+        <Textarea id="query-input" type="text" placeholder="Ask me anything" v-model="query" :disabled="pending"
+          @keyup.enter="handleSend($event)" autocomplete="off"
           class="w-full bg-transparent border-none p-1 ![--tw-ring-offset-shadow:0] ![--tw-ring-shadow:0] !shadow-none" />
 
         <div class="flex items-center justify-between space-x-2">
@@ -67,7 +67,8 @@ const emit = defineEmits<{ (e: 'send', payload: { text: string, model: string })
 const query = ref("")
 const userStore = useUserStore()
 
-function handleSend() {
+function handleSend(e: KeyboardEvent) {
+  if (e.shiftKey) return
   if (!query.value.trim()) return
   emit("send", { text: query.value, model: userStore.selectedModel.id })
   query.value = ""

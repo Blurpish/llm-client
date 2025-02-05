@@ -17,6 +17,10 @@ export const useUserStore = defineStore('user', () => {
   const selectedModel = ref(predefinedModels.value.base);
   const autoModelSelect = ref(false);
   const currentMask = ref<any>(null);
+  const titleModel = {
+    id: 'meta-llama/llama-3.2-3b-instruct',
+    provider: 'openrouter',
+  }
 
   // NEW: Provider settings for multi-provider support
   const enabledProviders = ref({
@@ -47,7 +51,8 @@ export const useUserStore = defineStore('user', () => {
     predefinedModels,
     updatePredefinedModel,
     currentMask,
-    enabledProviders
+    enabledProviders,
+    titleModel,
   }
 }, {
   persist: true,

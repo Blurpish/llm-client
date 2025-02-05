@@ -146,7 +146,6 @@ export default defineNuxtPlugin(async () => {
     }
   }
 
-  // Add replication for every collection.
   const database = (globalThis as any).database;
   (async () => {
     Object.keys(collectionsConfig).forEach(async (collectionKey) => {

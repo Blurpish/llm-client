@@ -150,17 +150,15 @@ async function safePatch(patch: object): Promise<void> {
 
 // Update generateTitle() to select provider from user settings
 async function generateTitle(message: string): Promise<string> {
-  const titleProv = providers.get(userStore.titleProvider)
+  const titleProv = providers.get(userStore.titleModel.provider)
   if (!titleProv) return 'New Thread'
   
-  const prompt = `give a short title, TWO WORDS MAXIMUM to the conversation starting with the following message : ${message}. You must NOT UNDER ANY CIRCUMSTANCES exceed the two words maximum nor send ANYTHING ELSE the the TWO WORDS of the title.`
+  const prompt = `give a short title, TWO WORDS MAXIMUM to the conversation starting with the following message : ${message}. You must NOT UNDER ANY CIRCUMSTANCES exceed the two words maximum nor send ANYTHING ELSE the the TWO WORDS of the title. If you are unable to generate a title, please juste send "UNABLE TO GENERATE TITLE".`
   
   let title = ''
   const stream = await titleProv.chat([
     { role: "user", content: prompt }
-  ], {
-    id: "meta-llama/llama-3.2-3b-instruct",
-  })
+  ], userStore.titleModel.id)
 
   for await (const chunk of stream) {
     if (chunk.choices[0].delta?.content) {

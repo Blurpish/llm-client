@@ -67,43 +67,47 @@
         </SidebarGroupAction>
         <SidebarGroupContent>
           <SidebarMenu>
-            <!-- Root level threads -->
-            <SidebarMenuItem 
-              v-for="thread in getRootThreads()"
-              :key="thread.id"
-              @mouseenter="hoveredThreadId = thread.id"
-              @mouseleave="hoveredThreadId = null"
-              draggable="true"
-              @dragstart="handleDragStart($event, thread)"
-            >
-              <SidebarMenuButton asChild :isActive="route.params.id === thread.id">
-                <NuxtLink :to="`/thread/${thread.id}`" class="flex items-center justify-between">
-                  <span>{{ thread.title }}</span>
-                  <span>
-                    <Icon 
-                      v-if="route.params.id === thread.id || hoveredThreadId === thread.id" 
-                      name="lucide:pen" 
-                      @click.stop.prevent="openEditDialog(thread)" 
-                      class="w-4 h-4 inline-block ml-2" 
-                    />
-                    <Icon 
-                      v-if="route.params.id === thread.id || hoveredThreadId === thread.id" 
-                      name="lucide:trash" 
-                      @click.stop.prevent="handleDeleteClick($event, thread)" 
-                      class="w-4 h-4 inline-block ml-1" 
-                    />
-                    <Icon 
-                      v-if="route.params.id === thread.id || hoveredThreadId === thread.id"
-                      name="lucide:pin"
-                      @click.stop.prevent="togglePin(thread)"
-                      class="w-4 h-4 inline-block ml-1"
-                    />
-                  </span>
-                </NuxtLink>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+            <!-- Root threads draggable with group and change event -->
+            <draggable 
+              v-model="rootThreads" 
+              item-key="id" 
+              tag="div" 
+              :group="{ name: 'threads', pull: true, put: true }" 
+              @change="(evt) => handleThreadChange('/', evt)">
+              <template #item="{ element: thread }">
+                <SidebarMenuItem 
+                  :key="thread.id"
+                >
+                  <SidebarMenuButton asChild :isActive="route.params.id === thread.id">
+                    <NuxtLink :to="`/thread/${thread.id}`" class="flex items-center justify-between">
+                      <span class="overflow-hidden text-ellipsis whitespace-nowrap w-36">{{ thread.title }}</span>
+                      <span>
+                        <Icon 
+                          v-if="route.params.id === thread.id || hoveredThreadId === thread.id" 
+                          name="lucide:pen" 
+                          @click.stop.prevent="openEditDialog(thread)" 
+                          class="w-4 h-4 inline-block ml-2" 
+                        />
+                        <Icon 
+                          v-if="route.params.id === thread.id || hoveredThreadId === thread.id" 
+                          name="lucide:trash" 
+                          @click.stop.prevent="handleDeleteClick($event, thread)" 
+                          class="w-4 h-4 inline-block ml-1" 
+                        />
+                        <Icon 
+                          v-if="route.params.id === thread.id || hoveredThreadId === thread.id"
+                          name="lucide:pin"
+                          @click.stop.prevent="togglePin(thread)"
+                          class="w-4 h-4 inline-block ml-1"
+                        />
+                      </span>
+                    </NuxtLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </template>
+            </draggable>
 
-            <!-- Folders and their threads -->
+            <!-- For each folder, wrap its threads in draggable -->
             <template v-for="folder in folders" :key="folder.path">
               <Collapsible defaultOpen class="group/collapsible">
                 <SidebarMenuItem
@@ -138,41 +142,46 @@
                 
                 <CollapsibleContent>
                   <SidebarMenuSub>
-                    <SidebarMenuItem 
-                      v-for="thread in getThreadsInFolder(folder.path)"
-                      :key="thread.id"
-                      @mouseenter="hoveredThreadId = thread.id"
-                      @mouseleave="hoveredThreadId = null"
-                      draggable="true"
-                      @dragstart="handleDragStart($event, thread)"
-                      :style="{ '--depth': getDepth(folder.path) }"
-                    >
-                      <SidebarMenuButton asChild :isActive="route.params.id === thread.id">
-                        <NuxtLink :to="`/thread/${thread.id}`" class="flex items-center justify-between">
-                          <span>{{ thread.title }}</span>
-                          <span>
-                            <Icon 
-                              v-if="route.params.id === thread.id || hoveredThreadId === thread.id" 
-                              name="lucide:pen" 
-                              @click.stop.prevent="openEditDialog(thread)" 
-                              class="w-4 h-4 inline-block ml-2" 
-                            />
-                            <Icon 
-                              v-if="route.params.id === thread.id || hoveredThreadId === thread.id" 
-                              name="lucide:trash" 
-                              @click.stop.prevent="handleDeleteClick($event, thread)" 
-                              class="w-4 h-4 inline-block ml-1" 
-                            />
-                            <Icon 
-                              v-if="route.params.id === thread.id || hoveredThreadId === thread.id"
-                              name="lucide:pin"
-                              @click.stop.prevent="togglePin(thread)"
-                              class="w-4 h-4 inline-block ml-1"
-                            />
-                          </span>
-                        </NuxtLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
+                    <draggable 
+                      :model-value="getFolderThreadList(folder.path).value" 
+                      @update:modelValue="getFolderThreadList(folder.path).value = $event" 
+                      item-key="id" 
+                      tag="div"
+                      :group="{ name: 'threads', pull: true, put: true }" 
+                      @change="(evt) => handleThreadChange(folder.path, evt)">
+                      <template #item="{ element: thread }">
+                        <SidebarMenuItem 
+                          :key="thread.id"
+                          :style="{ '--depth': getDepth(folder.path) }"
+                        >
+                          <SidebarMenuButton asChild :isActive="route.params.id === thread.id">
+                            <NuxtLink :to="`/thread/${thread.id}`" class="flex items-center justify-between">
+                              <span class="overflow-hidden text-ellipsis whitespace-nowrap w-24">{{ thread.title }}</span>
+                              <span>
+                                <Icon 
+                                  v-if="route.params.id === thread.id || hoveredThreadId === thread.id" 
+                                  name="lucide:pen" 
+                                  @click.stop.prevent="openEditDialog(thread)" 
+                                  class="w-4 h-4 inline-block ml-2" 
+                                />
+                                <Icon 
+                                  v-if="route.params.id === thread.id || hoveredThreadId === thread.id" 
+                                  name="lucide:trash" 
+                                  @click.stop.prevent="handleDeleteClick($event, thread)" 
+                                  class="w-4 h-4 inline-block ml-1" 
+                                />
+                                <Icon 
+                                  v-if="route.params.id === thread.id || hoveredThreadId === thread.id"
+                                  name="lucide:pin"
+                                  @click.stop.prevent="togglePin(thread)"
+                                  class="w-4 h-4 inline-block ml-1"
+                                />
+                              </span>
+                            </NuxtLink>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      </template>
+                    </draggable>
                   </SidebarMenuSub>
                 </CollapsibleContent>
               </Collapsible>
@@ -269,6 +278,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { useSidebar } from '@/components/ui/sidebar'
+import draggable from 'vuedraggable'  // NEW import
 
 const menuItems = [
   { title: "Home", url: "/", icon: "lucide:house" },
@@ -431,14 +441,24 @@ async function confirmAddFolder() {
   newFolderName.value = ''
 }
 
-// Add new function to get root threads
-function getRootThreads() {
-  return threads.value.filter(t => !t.folderPath || t.folderPath === '/');
-}
+// Replace getRootThreads with a computed property supporting reordering.
+const rootThreads = computed({
+  get: () => threads.value.filter(t => !t.folderPath || t.folderPath === '/'),
+  set: (newOrder) => {
+    const others = threads.value.filter(t => t.folderPath && t.folderPath !== '/')
+    threads.value = [...newOrder, ...others]
+  }
+})
 
-// Update getThreadsInFolder to be more explicit about folder threads
-function getThreadsInFolder(folderPath: string) {
-  return threads.value.filter(t => t.folderPath === folderPath && t.folderPath !== '/');
+// Helper to enable reordering threads in a folder.
+function getFolderThreadList(folderPath: string) {
+  return computed({
+    get: () => threads.value.filter(t => t.folderPath === folderPath),
+    set: (newOrder) => {
+      const others = threads.value.filter(t => t.folderPath !== folderPath)
+      threads.value = [...others, ...newOrder]
+    }
+  })
 }
 
 function getDepth(path: string) {
@@ -519,6 +539,17 @@ async function confirmDeleteFolder() {
     }
     showDeleteFolderDialog.value = false
     folderToDelete.value = null
+  }
+}
+
+// NEW: Handle change event across containers, updating folderPath.
+async function handleThreadChange(newFolderPath: string, evt: any) {
+  if (evt.added) {
+    const thread = evt.added.element;
+    const doc = await (globalThis as any).database.threads.findOne({ selector: { id: thread.id } }).exec();
+    if (doc) {
+      await doc.patch({ folderPath: newFolderPath });
+    }
   }
 }
 </script>
