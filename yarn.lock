@@ -958,6 +958,30 @@
     protobufjs "^7.2.5"
     yargs "^17.7.2"
 
+"@huggingface/hub@^1.0.0":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/@huggingface/hub/-/hub-1.0.0.tgz#a41ffa9165d72c1939d954cbf7c80293b20dd63d"
+  integrity sha512-IZ3fJ4WJ4iOghZkHWaKJY+XZJK9xAbaSIziY+OQcYtxnlcXo01/ibe2y2JjdsIhfzmYpxvov7F1qHoj2ek7tWQ==
+  dependencies:
+    "@huggingface/tasks" "^0.13.10"
+
+"@huggingface/inference@^3.1.6":
+  version "3.1.6"
+  resolved "https://registry.yarnpkg.com/@huggingface/inference/-/inference-3.1.6.tgz#ab5138f5acc494261da78f8882afbe2df5abb105"
+  integrity sha512-lHEVaY67CrHgyiMSwt0yKI8KS+IFRkP9OBnW8WMTGzSDCYjizcCraCW8Dk4I9g7f3ELvSSjQFS2YMfThqt57FQ==
+  dependencies:
+    "@huggingface/tasks" "^0.15.7"
+
+"@huggingface/tasks@^0.13.10":
+  version "0.13.17"
+  resolved "https://registry.yarnpkg.com/@huggingface/tasks/-/tasks-0.13.17.tgz#6c5683f5965fc960024585fac2ca45c7479af698"
+  integrity sha512-nytJPvVMlMpaeDOhjp0vJJKSWyHEKziPEQ5WbzeU2Av0W1y/xkvIE9XHdWcOXXOSOFieoJmSCUf2HI23umlzZw==
+
+"@huggingface/tasks@^0.15.7":
+  version "0.15.8"
+  resolved "https://registry.yarnpkg.com/@huggingface/tasks/-/tasks-0.15.8.tgz#304cdc694dbd9210970d696b8f3b9e42062a024d"
+  integrity sha512-jhnlWFviwe5PHTiOpcUeyzm7N4eJQgrGT6wH9Ef+uvnga4WVBU1xF35jYgbqwCjVH8adGjfuMC0lL5BF9r6G0w==
+
 "@iconify/collections@^1.0.496":
   version "1.0.513"
   resolved "https://registry.npmjs.org/@iconify/collections/-/collections-1.0.513.tgz"
@@ -8151,6 +8175,11 @@ vue-router@^4.5.0, vue-router@latest:
   integrity sha512-HDuk+PuH5monfNuY+ct49mNmkCRK4xJAV9Ts4z9UFc4rzdDnxQLyCMGGc8pKhZhHTVzfanpNwB/lwqevcBwI4w==
   dependencies:
     "@vue/devtools-api" "^6.6.4"
+
+vue-sonner@^1.3.0:
+  version "1.3.0"
+  resolved "https://registry.yarnpkg.com/vue-sonner/-/vue-sonner-1.3.0.tgz#da8ab9be995dfea781d57a6ac52d170d02473d86"
+  integrity sha512-jAodBy4Mri8rQjVZGQAPs4ZYymc1ywPiwfa81qU0fFl+Suk7U8NaOxIDdI1oBGLeQJqRZi/oxNIuhCLqsBmOwg==
 
 vue@^3.5.13, vue@latest:
   version "3.5.13"

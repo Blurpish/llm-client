@@ -7,6 +7,8 @@ export interface AIProvider {
   description?: string
   fetchModels: () => Promise<AIModel[]>
   chat: (messages: any[], model: string, options?: any) => Promise<AsyncIterable<any>>
+  config?: { apiKey?: string }
+  searchHandler?: (query: string) => Promise<AIModel[]>
 }
 
 export interface AIModel {

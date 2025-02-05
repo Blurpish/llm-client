@@ -59,12 +59,21 @@
       <CardContent>
         <div class="space-y-2">
           <!-- Loop through providers from useAI -->
-          <div v-for="provider in providersList" :key="provider.id" class="flex items-center space-x-2">
-            <Switch 
-              v-model:checked="userStore.enabledProviders[provider.id]" 
-              :id="provider.id" 
-            />
-            <Label :for="provider.id">{{ provider.name }}</Label>
+          <div v-for="provider in providersList" :key="provider.id" class="mb-4">
+            <div class="flex items-center space-x-2">
+              <Switch 
+                v-model:checked="userStore.enabledProviders[provider.id]" 
+                :id="provider.id" 
+              />
+              <Label :for="provider.id">{{ provider.name }}</Label>
+            </div>
+            <!-- Display Input component if provider supports configuration -->
+            <div v-if="mapping[provider.id]" class="ml-6 mt-1">
+              <Input 
+                v-model="userStore[mapping[provider.id]]" 
+                :disabled="!userStore.enabledProviders[provider.id]" 
+                :placeholder="'Enter API key for ' + provider.name" />
+            </div>
           </div>
         </div>
       </CardContent>
@@ -82,6 +91,16 @@ import { useAI } from '@/composables/useAI'
 const userStore = useUserStore();
 const { providers } = useAI()
 const providersList = computed(() => Array.from(providers.values()))
+
+const providerConfig = computed(() => ({
+  openRouterApiKey: userStore.openRouterToken,
+  huggingfaceApiKey: userStore.huggingfaceToken
+}))
+// Mapping provider ID to store key
+const mapping: Record<string, string> = {
+  openrouter: 'openRouterToken',
+  huggingface: 'huggingfaceToken'
+}
 
 const userId = ref('');
 const scanning = ref(false);

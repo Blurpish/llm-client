@@ -1,4 +1,5 @@
 <template>
+  <Toaster />
   <SidebarProvider>
     <AppSidebar />
     <main class="w-full h-[100dvh] relative">
@@ -11,6 +12,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
+import { Toaster } from '@/components/ui/sonner'
 
 const router = useRouter()
 
@@ -19,7 +21,7 @@ function handleKeydown(e: KeyboardEvent) {
   if (e.ctrlKey && e.key.toLowerCase() === 'n') {
     e.preventDefault()
     e.stopPropagation()
-    
+
     // Only handle our custom navigation if it's exactly Ctrl+N
     if (e.key === 'n') {
       router.push('/')

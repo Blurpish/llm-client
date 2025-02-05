@@ -57,6 +57,7 @@
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useAI } from '@/composables/useAI'
 import { useUserStore } from '@/stores/user'
+import { listModels } from '@huggingface/hub'
 
 const props = defineProps<{ open: boolean; editingDefault?: boolean }>()
 const emit = defineEmits<{
@@ -111,15 +112,20 @@ function computePricing(pricing: { prompt: string, completion: string }): string
 
 async function fetchOtherModels() {
   try {
-    if (!activeProvider.value) return
-    if (!userStore.enabledProviders[activeProvider.value.id]) {
-      const enabled = enabledProviders.value
-      if (enabled.length) {
-        setActiveProvider(enabled[0].id)
-        await nextTick()
+    if (!activeProvider.value) return;
+    console.log(activeProvider.value)
+    if (activeProvider.value.searchHandler) {
+      otherModels.value = await activeProvider.value.searchHandler(searchTerm.value.trim());
+    } else {
+      if (!userStore.enabledProviders[activeProvider.value.id]) {
+        const enabled = enabledProviders.value;
+        if (enabled.length) {
+          setActiveProvider(enabled[0].id);
+          await nextTick();
+        }
       }
+      otherModels.value = await activeProvider.value.fetchModels();
     }
-    otherModels.value = await activeProvider.value.fetchModels()
   } catch (err) {
     console.error('Failed to fetch models:', err);
   }
@@ -134,6 +140,10 @@ async function handleProviderClick(providerId: string) {
 watch(() => props.open, (newVal) => {
   if (newVal) fetchOtherModels();
 })
+
+watch(searchTerm, () => {
+  if (activeProvider.value?.searchHandler) fetchOtherModels();
+});
 
 function selectOtherModel(model: any) {
   emit('select-model', model)

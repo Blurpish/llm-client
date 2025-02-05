@@ -1,5 +1,6 @@
 export const useUserStore = defineStore('user', () => {
   const openRouterToken = ref('');
+  const huggingfaceToken = ref(''); // NEW: HuggingFace token
   
   const predefinedModels = ref({
     mini: { id: "openai/gpt-4o-mini", name: "Mini", provider: "openrouter", description: 'Fast model for simple tasks', icon: "lucide:zap" },
@@ -19,8 +20,9 @@ export const useUserStore = defineStore('user', () => {
 
   // NEW: Provider settings for multi-provider support
   const enabledProviders = ref({
-    openrouter: true,
-    ollama: true,
+    openrouter: false,
+    ollama: false,
+    huggingface: false,
   });
 
   function updatePredefinedModel(type: 'mini' | 'base' | 'max', model: any) {
@@ -38,13 +40,14 @@ export const useUserStore = defineStore('user', () => {
 
   return {
     openRouterToken,
+    huggingfaceToken, // NEW: expose the HuggingFace token
     savedModels,
     selectedModel,
     autoModelSelect,
     predefinedModels,
     updatePredefinedModel,
     currentMask,
-    enabledProviders      
+    enabledProviders
   }
 }, {
   persist: true,
