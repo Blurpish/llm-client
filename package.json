@@ -10,6 +10,10 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "@chainsafe/libp2p-gossipsub": "^14.1.0",
+    "@chainsafe/libp2p-noise": "^16.0.1",
+    "@libp2p/kad-dht": "^14.2.2",
+    "@libp2p/webrtc": "^5.0.25",
     "@nuxt/fonts": "0.10.3",
     "@nuxt/icon": "1.10.3",
     "@nuxtjs/color-mode": "^3.5.2",
@@ -20,6 +24,7 @@
     "clsx": "^2.1.1",
     "dompurify": "^3.2.4",
     "jsqr": "^1.4.0",
+    "libp2p": "^2.5.2",
     "lucide-vue-next": "^0.474.0",
     "marked": "^15.0.6",
     "nuxt": "^3.15.4",

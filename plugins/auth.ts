@@ -3,9 +3,9 @@ import { useUserStore } from '@/stores/user'
 
 export default defineNuxtPlugin(nuxt => {
   addRouteMiddleware('auth', async (to) => {
-    const userPrefs = useUserStore(nuxt.$pinia)
+    const userStore = useUserStore(nuxt.$pinia)
     
-    if (userPrefs.openRouterToken) return
+    if (userStore.openRouterToken) return
 
     const { code } = to.query
     const callbackUrl = process.env.NODE_ENV === 'development' 
@@ -22,7 +22,7 @@ export default defineNuxtPlugin(nuxt => {
         body: JSON.stringify({ code })
       })
       const { key } = await res.json()
-      userPrefs.openRouterToken = key
+      userStore.openRouterToken = key
     } catch (error) {
       return navigateTo('/login')
     }
