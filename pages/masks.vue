@@ -24,11 +24,12 @@
       </Card>
     </div>
 
-    <Dialog :open="showDialog" @update:open="showDialog = false">
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{{ isEditing ? 'Edit Mask' : 'Create New Mask' }}</DialogTitle>
-        </DialogHeader>
+    <ResponsiveDialog :open="showDialog" @update:open="showDialog = false">
+      <template #header>
+        <DialogTitle>{{ isEditing ? 'Edit Mask' : 'Create New Mask' }}</DialogTitle>
+      </template>
+
+      <template #content>
         <div class="space-y-4">
           <Input v-model="maskForm.name" placeholder="Mask Name" />
           <IconPicker v-model="maskForm.icon" placeholder="Choose an icon" />
@@ -38,11 +39,12 @@
             rows="10"
           />
         </div>
-        <DialogFooter>
-          <Button @click="saveMask">{{ isEditing ? 'Save' : 'Create' }}</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </template>
+
+      <template #footer>
+        <Button @click="saveMask">{{ isEditing ? 'Save' : 'Create' }}</Button>
+      </template>
+    </ResponsiveDialog>
   </div>
 </template>
 
@@ -50,7 +52,7 @@
 import { ref, onMounted } from 'vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 

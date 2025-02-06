@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { DialogTitle } from '@/components/ui/dialog'
 
 const props = defineProps<{
   modelValue: string,
@@ -84,12 +85,12 @@ onUnmounted(() => {
       <span>{{ modelValue || placeholder || 'Select an icon' }}</span>
     </Button>
 
-    <Dialog :open="showDialog" @update:open="showDialog = false">
-      <DialogContent class="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Select an icon</DialogTitle>
-        </DialogHeader>
-        
+    <ResponsiveDialog :open="showDialog" @update:open="showDialog = false">
+      <template #header>
+        <DialogTitle>Select an icon</DialogTitle>
+      </template>
+      
+      <template #content>
         <div class="sticky top-0 bg-white z-10 mb-4">
           <Input 
             v-model="searchQuery" 
@@ -121,7 +122,7 @@ onUnmounted(() => {
             <div ref="observerTarget" class="col-span-8 h-4" />
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </template>
+    </ResponsiveDialog>
   </div>
 </template>

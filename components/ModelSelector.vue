@@ -4,7 +4,7 @@
       <PopoverTrigger>
         <Button variant="outline">
           <Icon :name="userStore.autoModelSelect ? 'lucide:cpu' : getSelectedModelIcon()" class="w-4 h-4 mr-2" />
-          {{ userStore.autoModelSelect ? 'Auto' : selectedModelDisplay }}
+          <span class="max-w-24 truncate">{{ selectedModelDisplay }}</span>
         </Button>
       </PopoverTrigger>
       <PopoverContent class="w-56 p-0">
@@ -41,7 +41,7 @@
             <div class="flex items-center gap-1 p-2 hover:bg-gray-100 cursor-pointer w-full"
               @click="selectCustomModel(model)">
               <Icon :name="model.icon" class="w-4 h-4" />
-              {{ model.name }}
+              <span class="text-wrap line-clamp-3 truncate w-min">{{ model.name }}</span>
             </div>
             <Button @click="removeSavedModel(model)" size="icon" variant="ghost" class="bg-transparent">
               <Icon name="lucide:x" class="w-4 h-4" />

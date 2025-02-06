@@ -76,6 +76,7 @@ function handleReplicationPool(replicationPool: any, database: any) {
         } else if (message.method === 'token' && message.data && message.data.type === 'ollama-list-req') {
           const userStore = useUserStore();
           if (userStore.device.capabilities.includes('ollama-serve')) {
+            console.log('Fetching AI models...');
             try {
               const models = await ollamaProvider.fetchModels();
               peers[0].peer.send(

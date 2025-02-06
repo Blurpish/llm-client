@@ -1,35 +1,35 @@
 <template>
-  <Dialog v-model:open="open">
-    <DialogContent>
-      <DialogHeader>
-        <!-- Provider chips -->
-        <div class="flex gap-2 flex-wrap mb-4">
-          <Button
-            v-for="provider in providers"
-            :key="provider.id"
-            variant="outline"
-            size="sm"
-            :class="activeProvider?.id === provider.id && 'bg-primary/10'"
-            @click="handleProviderClick(provider.id)"
-          >
-            <Icon name="lucide:server" class="w-4 h-4 mr-2" />
-            {{ provider.name }}
-          </Button>
-        </div>
-        <DialogTitle>
-          {{ props.editingDefault ? "Select new default model" : "Models from " + (activeProvider?.name || 'Provider') }}
-        </DialogTitle>
-        <DialogDescription>
-          Select a model from the list below.
-        </DialogDescription>
-      </DialogHeader>
+  <ResponsiveDialog v-model:open="open">
+    <template #header>
+      <!-- Provider chips -->
+      <div class="flex gap-2 flex-wrap mb-4">
+        <Button
+          v-for="provider in providers"
+          :key="provider.id"
+          variant="outline"
+          size="sm"
+          :class="activeProvider?.id === provider.id && 'bg-primary/10'"
+          @click="handleProviderClick(provider.id)"
+        >
+          <Icon :name="provider.icon" class="w-4 h-4 mr-2" />
+          {{ provider.name }}
+        </Button>
+      </div>
+      <DialogTitle>
+        {{ props.editingDefault ? "Select new default model" : "Models from " + (activeProvider?.name || 'Provider') }}
+      </DialogTitle>
+      <DialogDescription>
+        Select a model from the list below.
+      </DialogDescription>
+    </template>
 
-      <div class="flex mb-2 items-center">
+    <template #content>
+      <div class="flex mb-2 items-center p-4">
         <input type="text" v-model="searchTerm" placeholder="Search models" class="border p-2 w-full" />
         <ModelSorter v-model:sort-key="sortKey" />
       </div>
 
-      <div class="space-y-2 max-h-60 overflow-auto">
+      <div class="space-y-2 max-h-60 overflow-auto px-4">
         <div v-for="model in sortedOtherModels" :key="model.id" 
              class="p-2 border rounded cursor-pointer"
              @click="selectOtherModel(model)">
@@ -45,12 +45,12 @@
           </div>
         </div>
       </div>
+    </template>
 
-      <DialogFooter>
-        <Button variant="outline" @click="open = false">Close</Button>
-      </DialogFooter>
-    </DialogContent>
-  </Dialog>
+    <template #footer>
+      <Button variant="outline" @click="open = false">Close</Button>
+    </template>
+  </ResponsiveDialog>
 </template>
 
 <script lang="ts" setup>
