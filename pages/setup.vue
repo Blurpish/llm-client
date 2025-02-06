@@ -189,7 +189,7 @@
   </div>
 
 
-  <Dialog v-if="onboardingMode === 'new'" v-model:open="deviceDialogOpen">
+  <Dialog v-model:open="deviceDialogOpen">
     <DialogContent>
       <DialogHeader>
         <DialogTitle>Device Setup</DialogTitle>
@@ -313,13 +313,11 @@ function finishSyncSetup() {
     return;
   }
   userStore.accountId = scannedAccountId.value;
-  userStore.createDevice("Synced Device", "default");
   toast(`Device bound to account ${scannedAccountId.value}`);
-  currentStep.value++;
-  currentStep.value++;
+  deviceDialogOpen.value = true;
+  stopScan();
 }
 
-// --- Existing functions ---
 function finishDeviceSetup() {
   if (!deviceSettings.name || !deviceSettings.icon) {
     toast('Please fill both fields for device setup', { type: 'error' });
@@ -328,7 +326,11 @@ function finishDeviceSetup() {
   userStore.createDevice(deviceSettings.name, deviceSettings.icon);
   toast('Device settings saved', { description: `${deviceSettings.name} (${deviceSettings.icon})` });
   deviceDialogOpen.value = false;
-  currentStep.value++; // Proceed to next step after device setup
+  currentStep.value++;
+
+  if (onboardingMode.value === 'sync') {
+    nextStep();
+  }
 }
 
 const steps = computed(() => {
