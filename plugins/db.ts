@@ -13,11 +13,11 @@ import { replicateWebRTC, getConnectionHandlerSimplePeer } from 'rxdb/plugins/re
 import { RxDBMigrationSchemaPlugin } from 'rxdb/plugins/migration-schema';
 
 export default defineNuxtPlugin(async () => {
-  // Retrieve credentials from runtime config (make sure to define RTC_ICE_USERNAME & RTC_ICE_CREDENTIAL in your .env)
   const config = useRuntimeConfig();
   const ICE_USERNAME = config.public.RTC_ICE_USERNAME;
   const ICE_CREDENTIAL = config.public.RTC_ICE_CREDENTIAL;
 
+  addRxPlugin(RxDBDevModePlugin);
   addRxPlugin(RxDBMigrationSchemaPlugin);
 
   const collectionsConfig = {
@@ -50,7 +50,6 @@ export default defineNuxtPlugin(async () => {
           pinned: { type: 'boolean', default: false },
           folderPath: { type: 'string', default: '/' }
         },
-        required: ['id', 'object', 'created_at', 'title', 'timestamp', 'messages']
       }
     },
     profile: {
@@ -81,7 +80,6 @@ export default defineNuxtPlugin(async () => {
             default: { name: "", occupation: "", traits: "", other: "" }
           }
         },
-        required: ['id', 'object', 'created_at', 'name', 'email', 'avatar', 'bio', 'threads']
       }
     },
     folders: {
@@ -96,7 +94,6 @@ export default defineNuxtPlugin(async () => {
           parentPath: { type: 'string' },
           created_at: { type: 'integer', minimum: 0 }
         },
-        required: ['id', 'name', 'path', 'parentPath', 'created_at']
       }
     },
     masks: {
@@ -111,7 +108,6 @@ export default defineNuxtPlugin(async () => {
           icon: { type: 'string', default: 'lucide:user' },
           created_at: { type: 'integer', minimum: 0 }
         },
-        required: ['id', 'name', 'prompt', 'created_at']
       }
     }
   };
@@ -148,9 +144,16 @@ export default defineNuxtPlugin(async () => {
   const database = (globalThis as any).database;
   (async () => {
     Object.keys(collectionsConfig).forEach(async (collectionKey) => {
-      const replicationPool = await replicateWebRTC({
+      console.log(`Replicating "${collectionKey}" collection`);
+      console.log({
         collection: database[collectionKey],
         topic: `eban-${collectionKey}-pool-${(database as any).userId}`,
+        ICE_USERNAME,
+        ICE_CREDENTIAL
+      })
+      const replicationPool = await replicateWebRTC({
+        collection: database[collectionKey],
+        topic: `llmclient-{collectionKey}-pool-${(database as any).userId}`,
         connectionHandlerCreator: getConnectionHandlerSimplePeer({
           signalingServerUrl: 'wss://llm-client-signaling.eban.eu.org',
           config: {

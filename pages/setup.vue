@@ -351,7 +351,7 @@ async function finishOnboarding() {
   userStore.useServerSync = useServerSync.value;
   const db = (globalThis as any).database;
   if (onboardingMode.value === 'new') {
-    const userId = 'user-' + Math.random().toString(36).substr(2, 9);
+    const userId = userStore.accountId;
     await db.profile.upsert({
       id: userId,
       object: 'profile',
