@@ -58,7 +58,24 @@ function handleReplicationPool(replicationPool: any, database: any) {
           const { messages, model, threadId } = message.data;
           const userStore = useUserStore();
           if (userStore.device.capabilities.includes('ollama-serve')) {
+            const toast = useToast()
+            toast.toast({
+              title: 'Remote Ollama Request',
+              description: 'Processing generation request...',
+              duration: 3000
+            })
+            
             try {
+              // Send start signal to client
+              peers[0].peer.send(JSON.stringify({
+                method: 'token',
+                data: {
+                  type: 'completionStatus',
+                  status: 'started',
+                  threadId
+                }
+              }));
+              
               for await (const tokenChunk of ollamaProvider.chat(messages, model)) {
                 const delta = tokenChunk.choices[0].delta
                 const freshDoc = await database.threads.findOne({ selector: { id: threadId } }).exec()
@@ -69,8 +86,28 @@ function handleReplicationPool(replicationPool: any, database: any) {
                 await safePatch({ messages: updatedMessages }, threadId)
                 messages.value = updatedMessages
               }
+              
+              // Send completion signal
+              peers[0].peer.send(JSON.stringify({
+                method: 'token',
+                data: {
+                  type: 'completionStatus',
+                  status: 'completed',
+                  threadId
+                }
+              }));
             } catch (error) {
               console.error('Error processing AI completion:', error);
+              // Send error status
+              peers[0].peer.send(JSON.stringify({
+                method: 'token',
+                data: {
+                  type: 'completionStatus',
+                  status: 'error',
+                  threadId,
+                  error: error.message
+                }
+              }));
             }
           }
         } else if (message.method === 'token' && message.data && message.data.type === 'ollama-list-req') {

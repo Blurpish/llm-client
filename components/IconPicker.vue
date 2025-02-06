@@ -85,7 +85,7 @@ onUnmounted(() => {
       <span>{{ modelValue || placeholder || 'Select an icon' }}</span>
     </Button>
 
-    <ResponsiveDialog :open="showDialog" @update:open="showDialog = false">
+    <ResponsiveDialog v-model:open="showDialog">
       <template #header>
         <DialogTitle>Select an icon</DialogTitle>
       </template>

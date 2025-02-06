@@ -24,13 +24,13 @@
       </Card>
     </div>
 
-    <ResponsiveDialog :open="showDialog" @update:open="showDialog = false">
+    <ResponsiveDialog v-model:open="showDialog">
       <template #header>
         <DialogTitle>{{ isEditing ? 'Edit Mask' : 'Create New Mask' }}</DialogTitle>
       </template>
 
       <template #content>
-        <div class="space-y-4">
+        <div class="space-y-4 px-4">
           <Input v-model="maskForm.name" placeholder="Mask Name" />
           <IconPicker v-model="maskForm.icon" placeholder="Choose an icon" />
           <Textarea

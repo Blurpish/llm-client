@@ -22,6 +22,9 @@ export default defineNuxtConfig({
       RTC_ICE_CREDENTIAL: process.env.METERED_TURN_PASSWORD
     }
   },
+  piniaPersistedstate: {
+    storage: 'localStorage',
+  },
   vite: {
     define: {
       global: 'globalThis'

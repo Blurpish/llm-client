@@ -16,6 +16,11 @@
         <div v-else class="w-full">
           <div class="prose prose-sm max-w-none" v-html="processContent(msg.content)"></div>
         </div>
+        <div v-if="msg.role === 'assistant' && msg.content === '' && pending" 
+             class="w-full animate-pulse">
+          <div class="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+          <div class="h-4 bg-gray-200 rounded w-1/2"></div>
+        </div>
       </div>
     </div>
     <div class="flex justify-center w-full max-w-[1100px]">
@@ -124,6 +129,39 @@ onMounted(async () => {
     db.masks.find().exec().then((docs: any) => {
       masks.value = docs.map((doc: any) => doc.toJSON())
     })
+  })
+
+  // Listen for completion status messages
+  window.addEventListener('message', (e) => {
+    try {
+      const message = JSON.parse(e.data);
+      if (message.method === 'token' && message.data?.type === 'completionStatus') {
+        const toast = useToast()
+        switch (message.data.status) {
+          case 'started':
+            toast.toast({
+              title: 'Generation Started',
+              description: 'Remote Ollama is processing your request...',
+              duration: 3000
+            })
+            break;
+          case 'completed':
+            toast.toast({
+              title: 'Generation Complete',
+              description: 'Remote Ollama has finished processing',
+              duration: 3000
+            })
+            break;
+          case 'error':
+            toast.toast({
+              title: 'Generation Error',
+              description: message.data.error || 'An error occurred during generation',
+              variant: 'destructive'
+            })
+            break;
+        }
+      }
+    } catch {}
   })
 })
 
@@ -305,5 +343,14 @@ watch(() => messages.value, () => {
   background: #f3f4f6;
   padding: 0.25rem;
   border-radius: 0.25rem;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .5; }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 </style>

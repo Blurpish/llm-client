@@ -17,7 +17,7 @@
       </SidebarGroup>
       
       <!-- Pinned Threads -->
-      <SidebarGroup v-if="pinnedThreads.length">
+      <SidebarGroup v-if="pinnedThreads.length > 0">
         <SidebarGroupLabel>Pinned</SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
@@ -68,44 +68,45 @@
         <SidebarGroupContent>
           <SidebarMenu>
             <!-- Root threads draggable with group and change event -->
-            <draggable 
+            <VueDraggable 
               v-model="rootThreads" 
-              item-key="id" 
-              tag="div" 
-              :group="{ name: 'threads', pull: true, put: true }" 
-              @change="(evt) => handleThreadChange('/', evt)">
-              <template #item="{ element: thread }">
-                <SidebarMenuItem 
-                  :key="thread.id"
-                >
-                  <SidebarMenuButton asChild :isActive="route.params.id === thread.id">
-                    <NuxtLink :to="`/thread/${thread.id}`" class="flex items-center justify-between">
-                      <span class="overflow-hidden text-ellipsis whitespace-nowrap w-36">{{ thread.title }}</span>
-                      <span>
-                        <Icon 
-                          v-if="route.params.id === thread.id || hoveredThreadId === thread.id" 
-                          name="lucide:pen" 
-                          @click.stop.prevent="openEditDialog(thread)" 
-                          class="w-4 h-4 inline-block ml-2" 
-                        />
-                        <Icon 
-                          v-if="route.params.id === thread.id || hoveredThreadId === thread.id" 
-                          name="lucide:trash" 
-                          @click.stop.prevent="handleDeleteClick($event, thread)" 
-                          class="w-4 h-4 inline-block ml-1" 
-                        />
-                        <Icon 
-                          v-if="route.params.id === thread.id || hoveredThreadId === thread.id"
-                          name="lucide:pin"
-                          @click.stop.prevent="togglePin(thread)"
-                          class="w-4 h-4 inline-block ml-1"
-                        />
-                      </span>
-                    </NuxtLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </template>
-            </draggable>
+              :options="{
+                group: { name: 'threads', pull: true, put: true },
+                animation: 150
+              }"
+              @change="(evt) => handleThreadChange('/', evt)"
+            >
+              <SidebarMenuItem 
+                v-for="thread in rootThreads"
+                :key="thread.id"
+              >
+                <SidebarMenuButton asChild :isActive="route.params.id === thread.id">
+                  <NuxtLink :to="`/thread/${thread.id}`" class="flex items-center justify-between">
+                    <span class="overflow-hidden text-ellipsis whitespace-nowrap w-36">{{ thread.title }}</span>
+                    <span>
+                      <Icon 
+                        v-if="route.params.id === thread.id || hoveredThreadId === thread.id" 
+                        name="lucide:pen" 
+                        @click.stop.prevent="openEditDialog(thread)" 
+                        class="w-4 h-4 inline-block ml-2" 
+                      />
+                      <Icon 
+                        v-if="route.params.id === thread.id || hoveredThreadId === thread.id" 
+                        name="lucide:trash" 
+                        @click.stop.prevent="handleDeleteClick($event, thread)" 
+                        class="w-4 h-4 inline-block ml-1" 
+                      />
+                      <Icon 
+                        v-if="route.params.id === thread.id || hoveredThreadId === thread.id"
+                        name="lucide:pin"
+                        @click.stop.prevent="togglePin(thread)"
+                        class="w-4 h-4 inline-block ml-1"
+                      />
+                    </span>
+                  </NuxtLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </VueDraggable>
 
             <!-- For each folder, wrap its threads in draggable -->
             <template v-for="folder in folders" :key="folder.path">
@@ -142,46 +143,47 @@
                 
                 <CollapsibleContent>
                   <SidebarMenuSub>
-                    <draggable 
+                    <VueDraggable 
                       :model-value="getFolderThreadList(folder.path).value" 
-                      @update:modelValue="getFolderThreadList(folder.path).value = $event" 
-                      item-key="id" 
-                      tag="div"
-                      :group="{ name: 'threads', pull: true, put: true }" 
-                      @change="(evt) => handleThreadChange(folder.path, evt)">
-                      <template #item="{ element: thread }">
-                        <SidebarMenuItem 
-                          :key="thread.id"
-                          :style="{ '--depth': getDepth(folder.path) }"
-                        >
-                          <SidebarMenuButton asChild :isActive="route.params.id === thread.id">
-                            <NuxtLink :to="`/thread/${thread.id}`" class="flex items-center justify-between">
-                              <span class="overflow-hidden text-ellipsis whitespace-nowrap w-24">{{ thread.title }}</span>
-                              <span>
-                                <Icon 
-                                  v-if="route.params.id === thread.id || hoveredThreadId === thread.id" 
-                                  name="lucide:pen" 
-                                  @click.stop.prevent="openEditDialog(thread)" 
-                                  class="w-4 h-4 inline-block ml-2" 
-                                />
-                                <Icon 
-                                  v-if="route.params.id === thread.id || hoveredThreadId === thread.id" 
-                                  name="lucide:trash" 
-                                  @click.stop.prevent="handleDeleteClick($event, thread)" 
-                                  class="w-4 h-4 inline-block ml-1" 
-                                />
-                                <Icon 
-                                  v-if="route.params.id === thread.id || hoveredThreadId === thread.id"
-                                  name="lucide:pin"
-                                  @click.stop.prevent="togglePin(thread)"
-                                  class="w-4 h-4 inline-block ml-1"
-                                />
-                              </span>
-                            </NuxtLink>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      </template>
-                    </draggable>
+                      @update:modelValue="getFolderThreadList(folder.path).value = $event"
+                      :options="{
+                        group: { name: 'threads', pull: true, put: true },
+                        animation: 150
+                      }"
+                      @change="(evt) => handleThreadChange(folder.path, evt)"
+                    >
+                      <SidebarMenuItem 
+                        v-for="thread in getFolderThreadList(folder.path).value"
+                        :key="thread.id"
+                        :style="{ '--depth': getDepth(folder.path) }"
+                      >
+                        <SidebarMenuButton asChild :isActive="route.params.id === thread.id">
+                          <NuxtLink :to="`/thread/${thread.id}`" class="flex items-center justify-between">
+                            <span class="overflow-hidden text-ellipsis whitespace-nowrap w-24">{{ thread.title }}</span>
+                            <span>
+                              <Icon 
+                                v-if="route.params.id === thread.id || hoveredThreadId === thread.id" 
+                                name="lucide:pen" 
+                                @click.stop.prevent="openEditDialog(thread)" 
+                                class="w-4 h-4 inline-block ml-2" 
+                              />
+                              <Icon 
+                                v-if="route.params.id === thread.id || hoveredThreadId === thread.id" 
+                                name="lucide:trash" 
+                                @click.stop.prevent="handleDeleteClick($event, thread)" 
+                                class="w-4 h-4 inline-block ml-1" 
+                              />
+                              <Icon 
+                                v-if="route.params.id === thread.id || hoveredThreadId === thread.id"
+                                name="lucide:pin"
+                                @click.stop.prevent="togglePin(thread)"
+                                class="w-4 h-4 inline-block ml-1"
+                              />
+                            </span>
+                          </NuxtLink>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    </VueDraggable>
                   </SidebarMenuSub>
                 </CollapsibleContent>
               </Collapsible>
@@ -278,7 +280,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { useSidebar } from '@/components/ui/sidebar'
-import draggable from 'vuedraggable'  // NEW import
+import { VueDraggable } from 'vue-draggable-plus'
 
 const menuItems = [
   { title: "Home", url: "/", icon: "lucide:house" },

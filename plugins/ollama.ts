@@ -121,6 +121,14 @@ export class RemoteOllamaProvider implements AIProvider {
     const peers = useNuxtApp().$getPeers()
     if (peers.length === 0) throw new Error('No peer available for remote ollama');
     
+    // Add toast to indicate remote request
+    const toast = useToast()
+    toast.toast({
+      title: 'Remote Generation',
+      description: 'Sending request to remote Ollama instance...',
+      duration: 3000
+    })
+    
     peers[0].peer.send(JSON.stringify({
       method: 'token',
       data: {
