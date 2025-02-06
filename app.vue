@@ -4,6 +4,7 @@
     <AppSidebar />
     <main class="w-full h-[100dvh] relative">
       <SidebarTrigger class="absolute bg-white top-2 left-2" />
+      <SyncStatus />
       <NuxtPage />
     </main>
   </SidebarProvider>
@@ -35,7 +36,6 @@ function handleKeydown(e: KeyboardEvent) {
 onMounted(() => {
   window.addEventListener('keydown', handleKeydown)
 })
-
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
 })

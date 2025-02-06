@@ -5,7 +5,7 @@ export const useUserStore = defineStore('user', () => {
   const huggingfaceToken = ref('');
   const accountId = ref('');
   
-  const device = ref({ id: '', name: '', icon: '' });
+  const device = ref({ id: '', name: '', icon: '', capabilities: [] });
   
   const defaultModels = ref({
     mini: { id: "google/gemini-2.0-flash-lite-preview", name: "Google: Gemini Flash Lite 2.0", provider: "openrouter", description: 'Fast model for simple tasks', icon: "lucide:zap" },
@@ -42,11 +42,12 @@ export const useUserStore = defineStore('user', () => {
     toast('New account created', { description: accountId.value });
   }
   
-  function createDevice(name: string, icon: string) {
+  function createDevice(name: string, icon: string, canServeOllama: boolean = false) {
     device.value = {
       id: 'device-' + Math.random().toString(36).substr(2, 9),
       name,
-      icon
+      icon,
+      capabilities: canServeOllama ? ['ollama-serve'] : [],
     };
     toast('New device created', { description: `${name} (${icon})` });
   }

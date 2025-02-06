@@ -20,6 +20,7 @@ export class OpenRouterProvider implements AIProvider {
 
   constructor(config?: { apiKey?: string }) {
     const userStore = useUserStore()
+    console.log('Creating OpenRouter provider with token', userStore.openRouterToken)
     this.client = new OpenAI({
       baseURL: "https://openrouter.ai/api/v1",
       apiKey: config?.apiKey || userStore.openRouterToken,

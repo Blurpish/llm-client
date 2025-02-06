@@ -48,23 +48,23 @@
             <div class="space-y-4">
               <div>
                 <Label for="ci-name">How should the AI address you?</Label>
-                <Input id="ci-name" type="text" v-model="localCustomInstructions.name" 
-                  @change="updateProfile" placeholder="Enter your name prompt" />
+                <Input id="ci-name" type="text" v-model="localCustomInstructions.name" @change="updateProfile"
+                  placeholder="Enter your name prompt" />
               </div>
               <div>
                 <Label for="ci-occupation">What is your occupation?</Label>
-                <Input id="ci-occupation" type="text" v-model="localCustomInstructions.occupation" 
+                <Input id="ci-occupation" type="text" v-model="localCustomInstructions.occupation"
                   @change="updateProfile" placeholder="Enter occupation prompt" />
               </div>
               <div>
                 <Label for="ci-traits">What traits should the AI have?</Label>
-                <Input id="ci-traits" type="text" v-model="localCustomInstructions.traits" 
-                  @change="updateProfile" placeholder="Enter traits prompt" />
+                <Input id="ci-traits" type="text" v-model="localCustomInstructions.traits" @change="updateProfile"
+                  placeholder="Enter traits prompt" />
               </div>
               <div>
                 <Label for="ci-other">Other instructions</Label>
-                <Textarea id="ci-other" v-model="localCustomInstructions.other" 
-                  @change="updateProfile" placeholder="Other instructions"></Textarea>
+                <Textarea id="ci-other" v-model="localCustomInstructions.other" @change="updateProfile"
+                  placeholder="Other instructions"></Textarea>
               </div>
             </div>
           </CardContent>
@@ -84,11 +84,8 @@
                     <Icon :name="provider.icon" class="w-4 h-4" /> <!-- new icon display -->
                     <span>{{ provider.name }}</span>
                   </div>
-                  <Button
-                    @click="userStore.providers[provider.id] ? disconnect(provider.id) : connect(provider.id)"
-                    :class="userStore.providers[provider.id] ? 'group bg-green-600 hover:bg-red-600' : ''"
-                    size="sm"
-                  >
+                  <Button @click="userStore.providers[provider.id] ? disconnect(provider.id) : connect(provider.id)"
+                    :class="userStore.providers[provider.id] ? 'group bg-green-600 hover:bg-red-600' : ''" size="sm">
                     <template v-if="userStore.providers[provider.id]">
                       <Icon name="lucide:plug-zap" class="group-hover:hidden" />
                       <Icon name="lucide:unplug" class="hidden group-hover:block" />
@@ -101,6 +98,12 @@
                     </template>
                   </Button>
                 </div>
+                <div class="mt-4" v-if="provider.id === 'ollama' && userStore.providers[provider.id]">
+                    <Label for="ollama-serve-switch" class="block text-sm text-gray-500">
+                      Serve to other devices
+                    </Label>
+                    <Switch id="ollama-serve-switch" v-model:checked="shouldServe" />
+                  </div>
               </div>
             </div>
           </CardContent>
@@ -174,4 +177,16 @@ async function disconnect(providerId: string) {
     console.error(error);
   }
 }
+
+const shouldServe = computed({
+  get: () => (userStore.device.capabilities as string[]).includes('ollama-serve'),
+  set: (value: boolean) => {
+    const capabilities = userStore.device.capabilities as string[];
+    if (value && !capabilities.includes('ollama-serve')) {
+      capabilities.push('ollama-serve');
+    } else if (!value) {
+      userStore.device.capabilities = capabilities.filter((c) => c !== 'ollama-serve');
+    }
+  }
+});
 </script>

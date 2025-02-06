@@ -91,8 +91,6 @@ onMounted(async () => {
   if (!threadDoc) {
     const newThread = {
       id: threadId,
-      object: 'thread',
-      created_at: Date.now(),
       title: 'New Thread',
       timestamp: Date.now(),
       tool_resources: null,
@@ -248,23 +246,13 @@ async function send(payload: { text: string }) {
   const modelToUse = userStore.autoModelSelect 
     ? await selectModelForMessage(payload.text)
     : userStore.selectedModel.id;
-      
-  // Look up the model in predefinedModels (search in all values)
-  let chosenModel: any;
-  for (const key in userStore.defaultModels) {
-    const m = userStore.defaultModels[key];
-    if (m.id === modelToUse) {
-      chosenModel = m;
-      break;
-    }
-  }
-  console.log(chosenModel)
+
   let chosenProv = userStore.selectedModel.provider ? availableProviders.get(userStore.selectedModel.provider) : null
   if (!chosenProv || !userStore.providers[chosenProv.id]) {
     chosenProv = activeProvider.value;
   }
   
-  const stream = await chosenProv.chat(apiMessages, modelToUse)
+  const stream = chosenProv.chat(apiMessages, modelToUse, threadId)
 
   for await (const data of stream) {
     const delta = data.choices[0].delta
@@ -280,26 +268,6 @@ async function send(payload: { text: string }) {
     if (data.choices[0].finish_reason) break
   }
   pending.value = false
-}
-
-function toggleHistory() {
-  showHistory.value = !showHistory.value
-}
-
-async function newThread() {
-  // Create a new thread and navigate to it
-  const id = Date.now().toString()
-  const newThreadObj = {
-    id,
-    object: 'thread',
-    created_at: Date.now(),
-    title: 'New Thread',
-    timestamp: Date.now(),
-    tool_resources: null,
-    messages: []
-  }
-  await (globalThis as any).database.threads.insert(newThreadObj)
-  router.push(`/thread/${id}`)
 }
 
 // Add helper function to process content with markdown and sanitization
