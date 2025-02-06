@@ -139,22 +139,19 @@ onMounted(async () => {
       if (message.method === 'token' && message.data?.type === 'completionStatus') {
         switch (message.data.status) {
           case 'started':
-            toast({
-              title: 'Generation Started',
+            toast('Generation Started', {
               description: 'Remote Ollama is processing your request...',
               duration: 3000
             })
             break;
           case 'completed':
-            toast({
-              title: 'Generation Complete',
-              description: 'Remote Ollama has finished processing',
+            toast('Generation Completed', {
+              description: 'Remote Ollama has finished processing your request',
               duration: 3000
             })
             break;
           case 'error':
-            toast({
-              title: 'Generation Error',
+            toast('Generation Error', {
               description: message.data.error || 'An error occurred during generation',
               variant: 'destructive'
             })

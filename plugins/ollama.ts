@@ -124,8 +124,7 @@ export class RemoteOllamaProvider implements AIProvider {
     if (peers.length === 0) throw new Error('No peer available for remote ollama');
     
     // Add toast to indicate remote request
-    toast({
-      title: 'Remote Generation',
+    toast('Remote Generation', {
       description: 'Sending request to remote Ollama instance...',
       duration: 3000
     })

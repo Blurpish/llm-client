@@ -59,8 +59,7 @@ function handleReplicationPool(replicationPool: any, database: any) {
           const { messages, model, threadId } = message.data;
           const userStore = useUserStore();
           if (userStore.device.capabilities.includes('ollama-serve')) {
-            toast({
-              title: 'Remote Ollama Request',
+            toast('Remote Ollama Request',{
               description: 'Processing generation request...',
               duration: 3000
             })
