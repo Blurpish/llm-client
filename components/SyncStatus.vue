@@ -1,11 +1,10 @@
 <template>
   <Popover>
-    <PopoverTrigger class="absolute top-2 right-2">
-      <div class="absolute w-8 h-8 overflow-hidden flex items-center justify-center">
-        <div class="w-200 h-4 w-4 rounded-full border border-white"
+    <PopoverTrigger class="fixed top-2 right-2 z-50">
+      <div class="w-8 h-8 overflow-hidden flex items-center justify-center relative">
+        <div class="h-4 w-4 rounded-full border border-white"
           :class="syncActive ? 'bg-green-500' : 'bg-gray-500'"></div>
-        <div
-          class="z-100 absolute left-2 top-2 w-4 h-4 inset-0 rounded-full opacity-75 animate-ping pointer-events-none"
+        <div class="absolute inset-0 mx-auto my-auto w-4 h-4 rounded-full opacity-75 animate-ping pointer-events-none"
           :class="syncActive ? 'bg-green-200' : 'bg-gray-500'"></div>
       </div>
     </PopoverTrigger>
@@ -17,7 +16,8 @@
           <div class="flex flex-col">
             <span>{{ peer.device.name }}</span>
             <span class="text-xs text-gray-500">{{ peer.device.id }}</span>
-            <Badge v-if="peer.device.capabilities" v-for="capability in peer.device.capabilities" :key="capability">{{ capability }}</Badge>
+            <Badge v-if="peer.device.capabilities" v-for="capability in peer.device.capabilities" :key="capability">{{
+              capability }}</Badge>
           </div>
         </div>
       </div>

@@ -42,6 +42,7 @@ async function safePatch(patch: object, id): Promise<void> {
 function handleReplicationPool(replicationPool: any, database: any) {
   replicationPool.peerStates$.subscribe(() => {
     const peers = replicationPool.peerStates$.getValue().values().toArray();
+    console.log('Peers:', peers);
     if (peers.length > 0) {
       peers[0].peer.on('data', async (data: any) => {
         const message = JSON.parse(data.toString());
@@ -116,6 +117,8 @@ function handleReplicationPool(replicationPool: any, database: any) {
           })
         );
       });
+    } else {
+      globalPeers = [];
     }
   });
 }
