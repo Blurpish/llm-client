@@ -20,7 +20,7 @@
               </div>
             </div>
             <!-- Predefined models -->
-            <div v-for="(model, key) in userStore.predefinedModels" :key="key"
+            <div v-for="(model, key) in userStore.defaultModels" :key="key"
                 class="flex items-center group hover:bg-gray-100 cursor-pointer p-1"
                 :class="{'bg-gray-100': !userStore.autoModelSelect && userStore.selectedModel.id === model.id}">
               <div class="flex items-center gap-1 flex-grow"
@@ -37,8 +37,7 @@
               </Button>
             </div>
           </div>
-          <!-- Custom saved models -->
-          <div v-for="model in customSavedModels" :key="model.id" class="flex items-center justify-between">
+          <div v-for="model in userStore.savedModels" v-if="userStore.savedModels.length > 0" :key="model.id" class="flex items-center justify-between">
             <div class="flex items-center gap-1 p-2 hover:bg-gray-100 cursor-pointer w-full"
               @click="selectCustomModel(model)">
               <Icon :name="model.icon" class="w-4 h-4" />
@@ -70,14 +69,10 @@ const userStore = useUserStore()
 const exploreModelsOpen = ref(false)
 const editDefaultKey = ref<string | null>(null)
 
-// Select a model from ExploreModels
 function selectOtherModel(model: any) {
   console.log(model)
   if (editDefaultKey.value) {
-    userStore.predefinedModels[editDefaultKey.value] = {
-      ...model,
-      provider: model.provider || 'openrouter'
-    }
+    userStore.updateDefaultModel(editDefaultKey.value, model)
     editDefaultKey.value = null
   } else {
     const exists = userStore.savedModels.find((m: any) => m.id === model.id)
@@ -94,7 +89,6 @@ function selectOtherModel(model: any) {
   userStore.selectedModel = model;
 }
 
-// Remove a saved model
 function removeSavedModel(model: any) {
   const index = userStore.savedModels.findIndex((m: any) => m.id === model.id)
   if (index > -1) {
@@ -125,22 +119,14 @@ function selectCustomModel(model: any) {
   console.log("Model updated to", userStore.selectedModel);
 }
 
-// Computed property for custom saved models (excluding predefined ones)
-const customSavedModels = computed(() => 
-  userStore.savedModels.filter(model => 
-    !Object.values(userStore.predefinedModels).some(pm => pm.id === model.id)
-  )
-);
-
 function selectAuto() {
   userStore.autoModelSelect = true
-  userStore.selectedModel = userStore.predefinedModels.base
+  userStore.selectedModel = userStore.defaultModels.base
 }
 
-// Computed property for selected model display
 const selectedModelDisplay = computed(() => {
   const model = userStore.selectedModel
-  for (const [key, value] of Object.entries(userStore.predefinedModels)) {
+  for (const [key, value] of Object.entries(userStore.defaultModels)) {
     if (value.id === model.id) {
       return key.charAt(0).toUpperCase() + key.slice(1)
     }
@@ -159,7 +145,7 @@ function getModelIcon(type: string): string {
 
 function getSelectedModelIcon(): string {
   const model = userStore.selectedModel;
-  for (const [key, value] of Object.entries(userStore.predefinedModels)) {
+  for (const [key, value] of Object.entries(userStore.defaultModels)) {
     if (value.id === model.id) {
       return getModelIcon(key);
     }

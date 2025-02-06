@@ -40,7 +40,7 @@
               <Button @click="handleFileAttach" :disabled="pending" variant="outline" size="icon" class="bg-transparent">
                 <Icon name="lucide:paperclip" class="w-5 h-5" />
               </Button>
-              <ModelSelector />
+              <ModelSelector @update:model="userStore.selectedModel = $event" />
             </div>
             <Button @click="handleSend" size="icon"
               :disabled="!query.trim() || pending">

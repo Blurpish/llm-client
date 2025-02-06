@@ -17,7 +17,7 @@ onMounted(async () => {
   // Check database.userId rather than localStorage
   const db = (globalThis as any).database;
   if (!db || !db.userId) {
-    router.push('/accountSetup')
+    router.push('/setup')
   }
 })
 

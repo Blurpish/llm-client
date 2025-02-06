@@ -16,6 +16,33 @@ export class OpenRouterProvider implements AIProvider {
     })
   }
 
+  async connect(): Promise<void> {
+    try {
+      const response = await fetch('http://localhost:11434/api/version')
+      if (!response.ok) {
+        console.error('Failed to connect to Ollama')
+        throw new Error('Failed to connect to Ollama')
+      }
+      console.log('Connected to Ollama')
+    } catch (error: any) {
+      console.error('Ollama connection error:', error)
+      throw error
+    }
+  }
+
+  // NEW: disconnect method to clear any stored API key/state
+  async disconnect(): Promise<void> {
+    // For demonstration, reset API key if stored or perform any cleanup
+    // (Assuming client has a property to clear; here we simply log)
+    console.log('Disconnected from Ollama')
+    // Optionally, recreate the client with an empty API key:
+    this.client = new OpenAI({
+      baseURL: "http://localhost:11434/v1",
+      apiKey: '',
+      dangerouslyAllowBrowser: true,
+    })
+  }
+
   async fetchModels(): Promise<AIModel[]> {
     const res = await fetch('http://localhost:11434/api/tags')
     const json = await res.json()

@@ -1,20 +1,21 @@
+import { toast } from 'vue-sonner'
+
 export const useUserStore = defineStore('user', () => {
   const openRouterToken = ref('');
-  const huggingfaceToken = ref(''); // NEW: HuggingFace token
+  const huggingfaceToken = ref('');
+  const accountId = ref('');
   
-  const predefinedModels = ref({
-    mini: { id: "openai/gpt-4o-mini", name: "Mini", provider: "openrouter", description: 'Fast model for simple tasks', icon: "lucide:zap" },
-    base: { id: "anthropic/claude-2.1", name: "Base", provider: "openrouter", description: 'Balanced model for most tasks', icon: "lucide:bot" },
-    max: { id: "openai/gpt-4", name: "Max", provider: "openrouter", description: 'Advanced model for complex tasks', icon: "lucide:brain" }
+  const device = ref({ id: '', name: '', icon: '' });
+  
+  const defaultModels = ref({
+    mini: { id: "google/gemini-2.0-flash-lite-preview", name: "Google: Gemini Flash Lite 2.0", provider: "openrouter", description: 'Fast model for simple tasks', icon: "lucide:zap" },
+    base: { id: "google/gemini-2.0-flash", name: "Google: Gemini Flash 2.0", provider: "openrouter", description: 'Balanced model for most tasks', icon: "lucide:bot" },
+    max: { id: "deepseek/r1", name: "DeepSeek: R1", provider: "openrouter", description: 'Advanced model for complex tasks', icon: "lucide:brain" }
   });
 
-  const savedModels = ref([
-    predefinedModels.value.mini,
-    predefinedModels.value.base,
-    predefinedModels.value.max
-  ]);
-  
-  const selectedModel = ref(predefinedModels.value.base);
+  const savedModels = ref([]);
+
+  const selectedModel = ref(defaultModels.value.base);
   const autoModelSelect = ref(false);
   const currentMask = ref<any>(null);
   const titleModel = {
@@ -22,37 +23,51 @@ export const useUserStore = defineStore('user', () => {
     provider: 'openrouter',
   }
 
-  // NEW: Provider settings for multi-provider support
-  const enabledProviders = ref({
+  const providers = ref({
     openrouter: false,
     ollama: false,
     huggingface: false,
   });
 
-  function updatePredefinedModel(type: 'mini' | 'base' | 'max', model: any) {
-    predefinedModels.value[type] = { ...model };
-    // Update saved models to reflect changes
-    savedModels.value = [
-      predefinedModels.value.mini,
-      predefinedModels.value.base,
-      predefinedModels.value.max,
-      ...savedModels.value.filter(m => 
-        !Object.values(predefinedModels.value).some(pm => pm.id === m.id)
-      )
-    ];
+  const onboardingMode = ref<'new' | 'sync'>('new');
+
+  const useServerSync = ref(false);
+
+  function updateDefaultModel(type: 'mini' | 'base' | 'max', model: any) {
+    defaultModels.value[type] = model;
+  }
+
+  function generateAccountId() {
+    accountId.value = 'user-' + Math.random().toString(36).substr(2, 9);
+    toast('New account created', { description: accountId.value });
+  }
+  
+  function createDevice(name: string, icon: string) {
+    device.value = {
+      id: 'device-' + Math.random().toString(36).substr(2, 9),
+      name,
+      icon
+    };
+    toast('New device created', { description: `${name} (${icon})` });
   }
 
   return {
     openRouterToken,
-    huggingfaceToken, // NEW: expose the HuggingFace token
+    huggingfaceToken,
     savedModels,
+    defaultModels,
     selectedModel,
     autoModelSelect,
-    predefinedModels,
-    updatePredefinedModel,
+    updateDefaultModel,
     currentMask,
-    enabledProviders,
+    providers,
     titleModel,
+    onboardingMode,
+    useServerSync,
+    accountId,
+    generateAccountId,
+    device,
+    createDevice,
   }
 }, {
   persist: true,

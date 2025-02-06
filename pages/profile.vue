@@ -3,17 +3,22 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <!-- Left Column -->
       <div class="space-y-6">
-        <!-- User Profile Card -->
         <Card>
           <CardHeader>
-            <CardTitle>User Profile</CardTitle>
+            <CardTitle>Profile</CardTitle>
           </CardHeader>
           <CardContent>
-            <div class="flex gap-4">
-              <img :src="qrCodeUrl" alt="User QR Code" class="w-24 h-24 rounded" />
+            <div class="flex gap-4 flex-col">
               <div>
-                <p>User ID: {{ userId }}</p>
-                <Button @click="startScan">Scan for Pairing</Button>
+                <span class="block text-sm text-gray-500">User ID</span>
+                <span class="block text-sm font-semibold">{{ userStore.accountId }}</span>
+              </div>
+              <div>
+                <span class="block text-sm text-gray-500">Device</span>
+                <span class="block text-sm font-semibold">
+                  <Icon :name="'lucide:' + userStore.device.icon" />
+                  {{ userStore.device.name }}
+                </span>
               </div>
             </div>
             <div v-if="scanning" class="mt-4">
@@ -56,7 +61,6 @@
         </Card>
       </div>
 
-      <!-- Right Column -->
       <div class="space-y-6">
         <Card>
           <CardHeader>
@@ -65,18 +69,24 @@
           <CardContent>
             <div class="space-y-2">
               <div v-for="provider in providersList" :key="provider.id" class="mb-4">
-                <div class="flex items-center space-x-2">
-                  <Switch 
-                    v-model:checked="userStore.enabledProviders[provider.id]" 
-                    :id="provider.id" 
-                  />
-                  <Label :for="provider.id">{{ provider.name }}</Label>
-                </div>
-                <div v-if="mapping[provider.id]" class="ml-6 mt-1">
-                  <Input 
-                    v-model="userStore[mapping[provider.id]]" 
-                    :disabled="!userStore.enabledProviders[provider.id]" 
-                    :placeholder="'Enter API key for ' + provider.name" />
+                <div class="flex items-center gap-4 justify-between">
+                  <span>{{ provider.name }}</span>
+                  <Button
+                    @click="userStore.providers[provider.id] ? disconnect(provider.id) : connect(provider.id)"
+                    :class="userStore.providers[provider.id] ? 'group bg-green-600 hover:bg-red-600' : ''"
+                    size="sm"
+                  >
+                    <template v-if="userStore.providers[provider.id]">
+                      <Icon name="lucide:plug-zap" class="group-hover:hidden" />
+                      <Icon name="lucide:unplug" class="hidden group-hover:block" />
+                      <span class="group-hover:hidden">Connected</span>
+                      <span class="hidden group-hover:inline">Disconnect</span>
+                    </template>
+                    <template v-else>
+                      <Icon name="lucide:plug" />
+                      <span>Connect</span>
+                    </template>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -91,31 +101,18 @@
 import { ref, computed, onMounted } from 'vue';
 import jsQR from 'jsqr';
 import { useUserStore } from '@/stores/user';
-import { Switch } from '@/components/ui/switch'; // NEW: Import the Switch component
-import { useAI } from '@/composables/useAI'
+import { useAI } from '@/composables/useAI';
 
 const userStore = useUserStore();
-const { providers } = useAI()
-const providersList = computed(() => Array.from(providers.values()))
+const { availableProviders, connectProvider, disconnectProvider: disconnectProviderFromAI } = useAI();
+const providersList = computed(() => Array.from(availableProviders.values()));
 
-const providerConfig = computed(() => ({
-  openRouterApiKey: userStore.openRouterToken,
-  huggingfaceApiKey: userStore.huggingfaceToken
-}))
-// Mapping provider ID to store key
-const mapping: Record<string, string> = {
-  openrouter: 'openRouterToken',
-  huggingface: 'huggingfaceToken'
-}
-
-const userId = ref('');
 const scanning = ref(false);
 const videoEl = ref<HTMLVideoElement | null>(null);
 const canvasEl = ref<HTMLCanvasElement | null>(null);
 let scanAnimationFrame: number | null = null;
 let stream: MediaStream | null = null;
 
-// Create a local copy of custom instructions
 const localCustomInstructions = ref({
   name: '',
   occupation: '',
@@ -127,7 +124,6 @@ onMounted(async () => {
   // Retrieve the user id from the globally stored database instance
   const db = (globalThis as any).database;
   if (db && db.userId) {
-    userId.value = db.userId;
     const doc = await db.profile.findOne().exec();
     if (doc) {
       // Copy the database values to our local state
@@ -137,7 +133,7 @@ onMounted(async () => {
   }
 });
 
-const qrCodeUrl = computed(() => `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${userId.value}`);
+const qrCodeUrl = computed(() => `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${userStore.accountId}`);
 
 async function startScan() {
   scanning.value = true;
@@ -204,8 +200,21 @@ async function updateProfile() {
   }
 }
 
-function toggleProvider(provider: string, event: Event) {
-  const target = event.target as HTMLInputElement;
-  userStore.enabledProviders[provider] = target.checked;
+// Replace local enable/disconnect functions:
+async function connect(providerId: string) {
+  try {
+    await connectProvider(providerId);
+    userStore.providers[providerId] = true;
+  } catch (error) {
+    console.error(error);
+  }
+}
+async function disconnect(providerId: string) {
+  try {
+    await disconnectProviderFromAI(providerId);
+    userStore.providers[providerId] = false;
+  } catch (error) {
+    console.error(error);
+  }
 }
 </script>

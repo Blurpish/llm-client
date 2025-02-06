@@ -5,7 +5,7 @@
         <!-- Provider chips -->
         <div class="flex gap-2 flex-wrap mb-4">
           <Button
-            v-for="provider in enabledProviders"
+            v-for="provider in providers"
             :key="provider.id"
             variant="outline"
             size="sm"
@@ -70,17 +70,17 @@ const open = computed({
   set: (val) => emit('update:open', val)
 })
 
-const { activeProvider, providers, setActiveProvider } = useAI()
+const { activeProvider, availableProviders, setActiveProvider } = useAI()
 const userStore = useUserStore()
-const { enabledProviders: enabledProvidersRef } = storeToRefs(useUserStore())
+const { providers: providersRef } = storeToRefs(useUserStore())
 
-const enabledProviders = computed(() => {
-  return Array.from(providers.values()).filter(provider => enabledProvidersRef.value[provider.id])
+const providers = computed(() => {
+  return Array.from(availableProviders.values()).filter(provider => providersRef.value[provider.id])
 })
 
-setActiveProvider(enabledProviders.value[0]?.id)
+setActiveProvider(providers.value[0]?.id)
 
-watch(enabledProviders, (newProviders) => {
+watch(providers, (newProviders) => {
   if (newProviders.length && (!activeProvider.value || !newProviders.some(p => p.id === activeProvider.value.id))) {
     setActiveProvider(newProviders[0].id)
   }
@@ -125,8 +125,8 @@ async function fetchOtherModels() {
     if (activeProvider.value.searchHandler) {
       otherModels.value = await activeProvider.value.searchHandler(searchTerm.value.trim());
     } else {
-      if (!userStore.enabledProviders[activeProvider.value.id]) {
-        const enabled = enabledProviders.value;
+      if (!userStore.providers[activeProvider.value.id]) {
+        const enabled = providers.value;
         if (enabled.length) {
           setActiveProvider(enabled[0].id);
           await nextTick();

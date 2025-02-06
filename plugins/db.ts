@@ -18,7 +18,6 @@ export default defineNuxtPlugin(async () => {
   const ICE_USERNAME = config.public.RTC_ICE_USERNAME;
   const ICE_CREDENTIAL = config.public.RTC_ICE_CREDENTIAL;
 
-  addRxPlugin(RxDBDevModePlugin);
   addRxPlugin(RxDBMigrationSchemaPlugin);
 
   const collectionsConfig = {
@@ -153,7 +152,7 @@ export default defineNuxtPlugin(async () => {
         collection: database[collectionKey],
         topic: `eban-${collectionKey}-pool-${(database as any).userId}`,
         connectionHandlerCreator: getConnectionHandlerSimplePeer({
-          signalingServerUrl: 'wss://llm-client-signaling.eban.eu.org',
+          signalingServerUrl: 'wss://signaling.rxdb.info',
           config: {
             iceServers: [
               {

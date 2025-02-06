@@ -52,7 +52,7 @@ const showHistory = ref(false)
 const masks = ref([])
 let threadDoc: any = null
 
-const { activeProvider, providers } = useAI()
+const { activeProvider, availableProviders } = useAI()
 
 const activeMask = ref<any>(null)
 
@@ -150,7 +150,7 @@ async function safePatch(patch: object): Promise<void> {
 
 // Update generateTitle() to select provider from user settings
 async function generateTitle(message: string): Promise<string> {
-  const titleProv = providers.get(userStore.titleModel.provider)
+  const titleProv = availableProviders.get(userStore.titleModel.provider)
   if (!titleProv) return 'New Thread'
   
   const prompt = `give a short title, TWO WORDS MAXIMUM to the conversation starting with the following message : ${message}. You must NOT UNDER ANY CIRCUMSTANCES exceed the two words maximum nor send ANYTHING ELSE the the TWO WORDS of the title. If you are unable to generate a title, please juste send "UNABLE TO GENERATE TITLE".`
@@ -248,19 +248,19 @@ async function send(payload: { text: string }) {
   const modelToUse = userStore.autoModelSelect 
     ? await selectModelForMessage(payload.text)
     : userStore.selectedModel.id;
-    
+      
   // Look up the model in predefinedModels (search in all values)
   let chosenModel: any;
-  for (const key in userStore.predefinedModels) {
-    const m = userStore.predefinedModels[key];
+  for (const key in userStore.defaultModels) {
+    const m = userStore.defaultModels[key];
     if (m.id === modelToUse) {
       chosenModel = m;
       break;
     }
   }
-  // Pick the provider attached to the model; if disabled, fall back to activeProvider
-  let chosenProv = providers.get(chosenModel?.provider || '');
-  if (!chosenProv || !userStore.enabledProviders[chosenProv.id]) {
+  console.log(chosenModel)
+  let chosenProv = userStore.selectedModel.provider ? availableProviders.get(userStore.selectedModel.provider) : null
+  if (!chosenProv || !userStore.providers[chosenProv.id]) {
     chosenProv = activeProvider.value;
   }
   
