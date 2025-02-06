@@ -1,4 +1,5 @@
 <template>
+  <NuxtPwaManifest />
   <Toaster />
   <SidebarProvider>
     <AppSidebar />
