@@ -66,6 +66,7 @@ export class OllamaProvider implements AIProvider {
       model,
       messages,
       stream: true,
+      max_completion_tokens: 2000,
       ...options
     })
 
