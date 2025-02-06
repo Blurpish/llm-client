@@ -6,6 +6,7 @@ export interface AIProvider {
   id: string
   name: string
   description?: string
+  icon?: string
   fetchModels: () => Promise<AIModel[]>
   chat: (messages: any[], model: string, options?: any) => AsyncIterable<any>
   connect: () => Promise<void>
@@ -63,6 +64,7 @@ export function useAI() {
     if (provider && provider.disconnect) {
       await provider.disconnect()
       toast(`Disconnected from ${provider.name}`, { description: 'Disconnected successfully' })
+      useUserStore().providers[provider.id] = false
       return Promise.resolve()
     } else {
       toast(`Provider ${providerId} does not implement disconnect method`)

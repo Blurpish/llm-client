@@ -6,6 +6,7 @@ export class OpenRouterProvider implements AIProvider {
   id = 'ollama'
   name = 'Ollama'
   description = 'Access local ai models'
+  icon = 'simple-icons:ollama' 
   private client: OpenAI
 
   constructor() {

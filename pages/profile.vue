@@ -20,6 +20,16 @@
                   {{ userStore.device.name }}
                 </span>
               </div>
+              <div class="mt-4">
+                <template v-if="showQr">
+                  <span class="block text-sm text-gray-500">Pairing QR Code</span>
+                  <img :src="qrCodeUrl" alt="QR Code" class="w-10 h-10 border rounded mb-2" />
+                  <Button size="sm" @click="showQr = false">Hide pairing QR Code</Button>
+                </template>
+                <template v-else>
+                  <Button size="sm" @click="showQr = true">Show pairing QR Code</Button>
+                </template>
+              </div>
             </div>
             <div v-if="scanning" class="mt-4">
               <video ref="videoEl" autoplay playsinline class="w-full rounded"></video>
@@ -70,7 +80,10 @@
             <div class="space-y-2">
               <div v-for="provider in providersList" :key="provider.id" class="mb-4">
                 <div class="flex items-center gap-4 justify-between">
-                  <span>{{ provider.name }}</span>
+                  <div class="flex items-center gap-2">
+                    <Icon :name="provider.icon" class="w-4 h-4" /> <!-- new icon display -->
+                    <span>{{ provider.name }}</span>
+                  </div>
                   <Button
                     @click="userStore.providers[provider.id] ? disconnect(provider.id) : connect(provider.id)"
                     :class="userStore.providers[provider.id] ? 'group bg-green-600 hover:bg-red-600' : ''"
@@ -104,14 +117,11 @@ import { useUserStore } from '@/stores/user';
 import { useAI } from '@/composables/useAI';
 
 const userStore = useUserStore();
+// New reactive variable for controlling QR code visibility:
+const showQr = ref(false);
+
 const { availableProviders, connectProvider, disconnectProvider: disconnectProviderFromAI } = useAI();
 const providersList = computed(() => Array.from(availableProviders.values()));
-
-const scanning = ref(false);
-const videoEl = ref<HTMLVideoElement | null>(null);
-const canvasEl = ref<HTMLCanvasElement | null>(null);
-let scanAnimationFrame: number | null = null;
-let stream: MediaStream | null = null;
 
 const localCustomInstructions = ref({
   name: '',
@@ -119,6 +129,8 @@ const localCustomInstructions = ref({
   traits: '',
   other: ''
 });
+
+const qrCodeUrl = computed(() => `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${userStore.accountId}`);
 
 onMounted(async () => {
   // Retrieve the user id from the globally stored database instance
@@ -132,58 +144,6 @@ onMounted(async () => {
     }
   }
 });
-
-const qrCodeUrl = computed(() => `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${userStore.accountId}`);
-
-async function startScan() {
-  scanning.value = true;
-  try {
-    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-    if (videoEl.value) {
-      videoEl.value.srcObject = stream;
-      videoEl.value.onloadedmetadata = () => {
-        videoEl.value?.play();
-        scanLoop();
-      };
-    }
-  } catch (err) {
-    console.error('Camera access error:', err);
-    scanning.value = false;
-  }
-}
-
-function scanLoop() {
-  if (!videoEl.value || !canvasEl.value) return;
-  const canvas = canvasEl.value;
-  const context = canvas.getContext('2d');
-  if (!context) return;
-
-  canvas.width = videoEl.value.videoWidth;
-  canvas.height = videoEl.value.videoHeight;
-  context.drawImage(videoEl.value, 0, 0, canvas.width, canvas.height);
-  const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-
-  const code = jsQR(imageData.data, canvas.width, canvas.height);
-  if (code) {
-    console.log('QR code detected:', code.data);
-    stopScan();
-    // Handle scanned data as needed
-  } else {
-    scanAnimationFrame = requestAnimationFrame(scanLoop);
-  }
-}
-
-function stopScan() {
-  scanning.value = false;
-  if (scanAnimationFrame) {
-    cancelAnimationFrame(scanAnimationFrame);
-    scanAnimationFrame = null;
-  }
-  if (stream) {
-    stream.getTracks().forEach(track => track.stop());
-    stream = null;
-  }
-}
 
 async function updateProfile() {
   const db = (globalThis as any).database;
@@ -200,11 +160,9 @@ async function updateProfile() {
   }
 }
 
-// Replace local enable/disconnect functions:
 async function connect(providerId: string) {
   try {
     await connectProvider(providerId);
-    userStore.providers[providerId] = true;
   } catch (error) {
     console.error(error);
   }
@@ -212,7 +170,6 @@ async function connect(providerId: string) {
 async function disconnect(providerId: string) {
   try {
     await disconnectProviderFromAI(providerId);
-    userStore.providers[providerId] = false;
   } catch (error) {
     console.error(error);
   }

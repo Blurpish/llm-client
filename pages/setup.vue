@@ -7,20 +7,37 @@
     <Card class="p-8">
       <!-- Step 0: Account Type -->
       <div v-if="currentStep === 0" class="text-center">
-        <h2 class="text-2xl font-semibold mb-4">Choose Account Type</h2>
-        <div class="flex justify-center gap-4">
-          <Button variant="outline" @click="selectMode('new')"
-            :class="onboardingMode === 'new' && 'bg-primary text-white'">
-            <Icon name="tabler:plus" /> New Account
-          </Button>
-          <Button variant="outline" @click="selectMode('sync')"
-            :class="onboardingMode === 'sync' && 'bg-primary text-white'">
-            <Icon name="tabler:share" /> Sync Account
-          </Button>
-        </div>
+        <template v-if="!onboardingMode">
+          <h2 class="text-2xl font-semibold mb-4">Choose Account Type</h2>
+          <div class="flex justify-center gap-4">
+            <Button variant="outline" @click="selectMode('new')"
+              :class="onboardingMode === 'new' && 'bg-primary text-white'">
+              <Icon name="tabler:plus" /> New Account
+            </Button>
+            <Button variant="outline" @click="selectMode('sync')"
+              :class="onboardingMode === 'sync' && 'bg-primary text-white'">
+              <Icon name="tabler:share" /> Sync Account
+            </Button>
+          </div>
+        </template>
+        <template v-else-if="onboardingMode === 'sync'">
+          <h2 class="text-2xl font-semibold mb-4">Bind Device to Existing Account</h2>
+          <div class="mb-4">
+            <Button @click="startScan" variant="outline">Start QR Scan</Button>
+          </div>
+          <div v-if="scanning" class="mb-4">
+            <video ref="videoEl" autoplay playsinline class="w-full rounded mb-2"></video>
+            <!-- canvas is hidden -->
+            <canvas ref="canvasEl" class="hidden"></canvas>
+            <p>Scanning in progress...</p>
+          </div>
+          <div class="mb-4">
+            <Input v-model="scannedAccountId" placeholder="Enter Account ID manually" label="Account ID" />
+          </div>
+          <Button @click="finishSyncSetup" :disabled="!scannedAccountId">Bind Device</Button>
+        </template>
       </div>
 
-      <!-- Step 1: Custom Instructions (only for new) -->
       <div v-if="currentStep === 1 && onboardingMode === 'new'">
         <h2 class="text-2xl font-semibold mb-4 text-center">Set Custom Instructions</h2>
         <div class="space-y-4">
@@ -61,7 +78,7 @@
           <!-- OpenRouter -->
           <div class="flex items-center justify-between p-4 border rounded">
             <div class="flex items-center gap-3">
-              <Icon name="lucide:zap" />
+              <Icon :name="openrouterIcon" />
               <div>
                 <span>OpenRouter</span>
                 <p class="text-sm text-gray-500">Recommended</p>
@@ -79,7 +96,7 @@
           <!-- Ollama -->
           <div class="flex items-center justify-between p-4 border rounded">
             <div class="flex items-center gap-3">
-              <Icon name="simple-icons:ollama" />
+              <Icon :name="ollamaIcon" />
               <span>Ollama</span>
             </div>
             <div class="flex items-center gap-3">
@@ -94,7 +111,7 @@
           <!-- HuggingFace -->
           <div class="flex items-center justify-between p-4 border rounded">
             <div class="flex items-center gap-3">
-              <Icon name="logos:hugging-face-icon" />
+              <Icon :name="huggingfaceIcon" />
               <span>HuggingFace</span>
             </div>
             <div class="flex items-center gap-3">
@@ -146,7 +163,7 @@
       </div>
 
       <!-- Last Step: Server Sync -->
-      <div v-if="(currentStep === (onboardingMode === 'new' ? 4 : 2))" class="text-center">
+      <div v-if="currentStep === 4">
         <h2 class="text-2xl font-semibold mb-4">Enable Server Sync</h2>
         <p class="text-gray-500 mb-4">Enable server sync to save your data across devices. Data is synced in P2P by
           default, server sync allows to backup data even when on device is offline.</p>
@@ -171,7 +188,8 @@
     </Card>
   </div>
 
-  <Dialog v-model:open="deviceDialogOpen">
+
+  <Dialog v-if="onboardingMode === 'new'" v-model:open="deviceDialogOpen">
     <DialogContent>
       <DialogHeader>
         <DialogTitle>Device Setup</DialogTitle>
@@ -201,15 +219,15 @@ import { useUserStore } from '@/stores/user';
 import ExploreModels from '@/components/ExploreModels.vue';
 import { useAI } from '@/composables/useAI';
 import { toast } from 'vue-sonner';
+import jsQR from 'jsqr';
 
-const { connectProvider } = useAI();
-
+const { connectProvider, availableProviders } = useAI();
 const router = useRouter();
 const userStore = useUserStore();
 
 // Local copies for onboarding
 const currentStep = ref(0);
-const onboardingMode = ref(userStore.onboardingMode);
+const onboardingMode = ref<string | null>(null);
 const localInstructions = ref({
   name: "",
   occupation: "",
@@ -219,12 +237,12 @@ const localInstructions = ref({
 const providers = ref({ ...userStore.providers });
 const useServerSync = ref(userStore.useServerSync);
 
-// New device dialog state
-const deviceDialogOpen = ref(false);
-const deviceSettings = reactive({
-  name: "",
-  icon: ""
-});
+const scanning = ref(false);
+const videoEl = ref<HTMLVideoElement | null>(null);
+const canvasEl = ref<HTMLCanvasElement | null>(null);
+let scanAnimationFrame: number | null = null;
+let stream: MediaStream | null = null;
+const scannedAccountId = ref("");
 
 // For editing defaults via ExploreModels
 const exploreModelsOpen = ref(false);
@@ -235,10 +253,73 @@ function selectMode(mode: 'new' | 'sync') {
   userStore.onboardingMode = mode;
   if (mode === 'new') {
     userStore.generateAccountId();
+    deviceDialogOpen.value = true;
+  } else {
+    startScan();
   }
-  deviceDialogOpen.value = true;
 }
 
+async function startScan() {
+  scanning.value = true;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+    if (videoEl.value) {
+      videoEl.value.srcObject = stream;
+      videoEl.value.onloadedmetadata = () => {
+        videoEl.value?.play();
+        scanLoop();
+      };
+    }
+  } catch (err) {
+    console.error('Camera access error:', err);
+    scanning.value = false;
+  }
+}
+
+function scanLoop() {
+  if (!videoEl.value || !canvasEl.value) return;
+  const canvas = canvasEl.value;
+  const context = canvas.getContext('2d');
+  if (!context) return;
+  canvas.width = videoEl.value.videoWidth;
+  canvas.height = videoEl.value.videoHeight;
+  context.drawImage(videoEl.value, 0, 0, canvas.width, canvas.height);
+  const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+  const code = jsQR(imageData.data, canvas.width, canvas.height);
+  if (code) {
+    console.log('QR code detected:', code.data);
+    scannedAccountId.value = code.data;
+    stopScan();
+  } else {
+    scanAnimationFrame = requestAnimationFrame(scanLoop);
+  }
+}
+
+function stopScan() {
+  scanning.value = false;
+  if (scanAnimationFrame) {
+    cancelAnimationFrame(scanAnimationFrame);
+    scanAnimationFrame = null;
+  }
+  if (stream) {
+    stream.getTracks().forEach(track => track.stop());
+    stream = null;
+  }
+}
+
+function finishSyncSetup() {
+  if (!scannedAccountId.value) {
+    toast('Please scan or enter a valid Account ID', { type: 'error' });
+    return;
+  }
+  userStore.accountId = scannedAccountId.value;
+  userStore.createDevice("Synced Device", "default");
+  toast(`Device bound to account ${scannedAccountId.value}`);
+  currentStep.value++;
+  currentStep.value++;
+}
+
+// --- Existing functions ---
 function finishDeviceSetup() {
   if (!deviceSettings.name || !deviceSettings.icon) {
     toast('Please fill both fields for device setup', { type: 'error' });
@@ -250,12 +331,11 @@ function finishDeviceSetup() {
   currentStep.value++; // Proceed to next step after device setup
 }
 
-// Compute steps based on mode
 const steps = computed(() => {
   if (onboardingMode.value === 'new') {
     return ['Account Type', 'Custom Instructions', 'Customize Models', 'Providers', 'Server Sync'];
   }
-  return ['Account Type', 'Providers', 'Server Sync'];
+  return ['Account Type', 'Customize Models', 'Providers', 'Server Sync'];
 });
 
 function nextStep() {
@@ -283,7 +363,7 @@ async function finishOnboarding() {
     });
     db.userId = userId;
   } else {
-    console.log('Syncing account with selected providers...');
+    console.log('Syncing account with scanned Account ID...');
   }
   router.push('/');
 }
@@ -303,7 +383,6 @@ function updateDefaultModel(model: any) {
   }
 }
 
-// Replace icon mappings (remove "lucide:" prefix)
 function getModelIcon(type: string): string {
   const icons = {
     mini: "zap",
@@ -315,11 +394,31 @@ function getModelIcon(type: string): string {
 
 async function enableProvider(providerId: string) {
   try {
-    await connectProvider(providerId)
-    providers.value[providerId] = true
-    userStore.providers[providerId] = true
-  } catch (error) {
-    toast(`Failed to connect ${providerId}:`, { type: 'error', message: error.message })
+    await connectProvider(providerId);
+    providers.value[providerId] = true;
+    userStore.providers[providerId] = true;
+  } catch (error: any) {
+    toast(`Failed to connect ${providerId}:`, { type: 'error', message: error.message });
   }
 }
+
+// --- New device dialog state (for new accounts) ---
+const deviceDialogOpen = ref(false);
+const deviceSettings = reactive({
+  name: "",
+  icon: ""
+});
+
+const openrouterIcon = computed(() => {
+  const prov = availableProviders.get('openrouter');
+  return prov?.icon || 'lucide:zap';
+});
+const ollamaIcon = computed(() => {
+  const prov = availableProviders.get('ollama');
+  return prov?.icon || 'simple-icons:ollama';
+});
+const huggingfaceIcon = computed(() => {
+  const prov = availableProviders.get('huggingface');
+  return prov?.icon || 'logos:hugging-face-icon';
+});
 </script>

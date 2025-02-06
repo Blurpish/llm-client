@@ -7,6 +7,7 @@ export class HuggingFaceProvider implements AIProvider {
   id = 'huggingface'
   name = 'HuggingFace'
   description = 'Access multiple AI models through HuggingFace'
+  icon = 'logos:hugging-face-icon'
   private client: HfInference
   token?: string
 

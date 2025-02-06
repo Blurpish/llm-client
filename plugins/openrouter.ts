@@ -15,6 +15,7 @@ export class OpenRouterProvider implements AIProvider {
   id = 'openrouter'
   name = 'OpenRouter'
   description = 'Access multiple AI models through OpenRouter'
+  icon = 'lucide:zap'
   private client: OpenAI
 
   constructor(config?: { apiKey?: string }) {
