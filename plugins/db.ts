@@ -13,6 +13,7 @@ import { replicateWebRTC, getConnectionHandlerSimplePeer } from 'rxdb/plugins/re
 import { RxDBMigrationSchemaPlugin } from 'rxdb/plugins/migration-schema';
 import { ollamaProvider } from '@/plugins/ollama'
 import { useUserStore } from '@/stores/user'
+import { toast } from 'vue-sonner'
 
 let globalPeers = [];
 export function getPeers() {
@@ -58,8 +59,7 @@ function handleReplicationPool(replicationPool: any, database: any) {
           const { messages, model, threadId } = message.data;
           const userStore = useUserStore();
           if (userStore.device.capabilities.includes('ollama-serve')) {
-            const toast = useToast()
-            toast.toast({
+            toast({
               title: 'Remote Ollama Request',
               description: 'Processing generation request...',
               duration: 3000

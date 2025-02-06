@@ -1,6 +1,7 @@
 import OpenAI from 'openai'
 import type { AIProvider, AIModel } from '@/composables/useAI'
 import { useUserStore } from '@/stores/user'
+import { toast } from 'vue-sonner'
 
 function fetchWithoutXStainlessTimeout(input: RequestInfo, init?: RequestInit): Promise<Response> {
   const headers = new Headers(init?.headers)
@@ -89,6 +90,7 @@ export class RemoteOllamaProvider implements AIProvider {
   
   async fetchModels(): Promise<AIModel[]> {
     const peers = useNuxtApp().$getPeers()
+    if (peers.length === 0) toast('No peer available for remote ollama');
     if (peers.length === 0) throw new Error('No peer available for remote ollama');
     peers[0].peer.send(JSON.stringify({
       method: 'token',
@@ -122,8 +124,7 @@ export class RemoteOllamaProvider implements AIProvider {
     if (peers.length === 0) throw new Error('No peer available for remote ollama');
     
     // Add toast to indicate remote request
-    const toast = useToast()
-    toast.toast({
+    toast({
       title: 'Remote Generation',
       description: 'Sending request to remote Ollama instance...',
       duration: 3000

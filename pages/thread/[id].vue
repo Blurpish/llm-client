@@ -43,6 +43,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useUserStore } from '@/stores/user'
 import { useAI } from '@/composables/useAI'
+import { toast } from 'vue-sonner'
 
 type Message = { role: "system" | "user" | "assistant", content: string }
 
@@ -136,24 +137,23 @@ onMounted(async () => {
     try {
       const message = JSON.parse(e.data);
       if (message.method === 'token' && message.data?.type === 'completionStatus') {
-        const toast = useToast()
         switch (message.data.status) {
           case 'started':
-            toast.toast({
+            toast({
               title: 'Generation Started',
               description: 'Remote Ollama is processing your request...',
               duration: 3000
             })
             break;
           case 'completed':
-            toast.toast({
+            toast({
               title: 'Generation Complete',
               description: 'Remote Ollama has finished processing',
               duration: 3000
             })
             break;
           case 'error':
-            toast.toast({
+            toast({
               title: 'Generation Error',
               description: message.data.error || 'An error occurred during generation',
               variant: 'destructive'
